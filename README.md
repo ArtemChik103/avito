@@ -34,10 +34,37 @@ pytest
 uvicorn src.avito_splitter.api:app --reload
 ```
 
+Самый простой запуск всего проекта:
+
+```bash
+python run_project.py
+```
+
+Это поднимет backend и Streamlit вместе. После старта открой:
+
+- `http://127.0.0.1:8501` — demo UI
+- `http://127.0.0.1:8000/docs` — FastAPI docs
+
+Самые полезные команды:
+
+```bash
+python run_project.py
+python run_project.py report
+python run_project.py test
+python run_project.py backend
+python run_project.py frontend
+```
+
 Для пересчета метрик на расширенном synthetic-наборе:
 
 ```bash
 python -c "from pathlib import Path; from src.avito_splitter.evaluation import evaluate_file; print(evaluate_file(Path('data/synthetic_eval_examples.json')))"
+```
+
+Для полного табличного отчета по всем case-файлам:
+
+```bash
+python run_project.py report
 ```
 
 После старта сервера доступны:
@@ -80,16 +107,14 @@ python -c "from pathlib import Path; from src.avito_splitter.evaluation import e
 
 ### Запуск Demo
 
-1. Установите зависимости:
+1. Самый короткий вариант:
+   ```bash
+   python run_project.py
+   ```
+2. Если нужен ручной раздельный запуск:
    ```bash
    pip install -r requirements.txt
-   ```
-2. В одном терминале поднимите backend (если он еще не запущен):
-   ```bash
    uvicorn src.avito_splitter.api:app --reload
-   ```
-3. В другом терминале запустите Streamlit:
-   ```bash
    streamlit run demo/streamlit_app.py
    ```
 
