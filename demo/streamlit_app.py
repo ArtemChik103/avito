@@ -159,7 +159,8 @@ if 'selected_expected' not in st.session_state:
 with st.sidebar:
     st.title("⚙️ Settings & Status")
     
-    backend_url = st.text_input("Backend URL", value="http://localhost:8000")
+    default_backend_url = os.getenv("AVITO_BACKEND_URL", "http://127.0.0.1:8000")
+    backend_url = st.text_input("Backend URL", value=default_backend_url)
     
     is_online = check_backend(backend_url)
     if is_online:

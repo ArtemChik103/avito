@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import socket
 import subprocess
 import sys
 import time
@@ -71,6 +73,10 @@ def _normalize_cli_args(argv: list[str]) -> list[str]:
 
 
 def run_demo(args: argparse.Namespace) -> int:
+    backend_port = _find_available_port("127.0.0.1", args.backend_port)
+    frontend_port = _find_available_port("127.0.0.1", args.frontend_port)
+    backend_url = f"http://127.0.0.1:{backend_port}"
+
     backend_cmd = [
         sys.executable,
         "-m",
@@ -79,7 +85,7 @@ def run_demo(args: argparse.Namespace) -> int:
         "--host",
         "127.0.0.1",
         "--port",
-        str(args.backend_port),
+        str(backend_port),
     ]
     frontend_cmd = [
         sys.executable,
@@ -90,20 +96,27 @@ def run_demo(args: argparse.Namespace) -> int:
         "--server.address",
         "127.0.0.1",
         "--server.port",
-        str(args.frontend_port),
+        str(frontend_port),
         "--server.headless",
         "true",
     ]
 
+    if backend_port != args.backend_port:
+        print(f"Port {args.backend_port} is busy, using backend port {backend_port}.")
+    if frontend_port != args.frontend_port:
+        print(f"Port {args.frontend_port} is busy, using frontend port {frontend_port}.")
+
     backend = subprocess.Popen(backend_cmd, cwd=ROOT)
     frontend = None
     try:
-        _wait_for_url(f"http://127.0.0.1:{args.backend_port}/health", "backend")
-        frontend = subprocess.Popen(frontend_cmd, cwd=ROOT)
-        _wait_for_url(f"http://127.0.0.1:{args.frontend_port}/_stcore/health", "streamlit")
+        _wait_for_url(f"{backend_url}/health", "backend")
+        frontend_env = os.environ.copy()
+        frontend_env["AVITO_BACKEND_URL"] = backend_url
+        frontend = subprocess.Popen(frontend_cmd, cwd=ROOT, env=frontend_env)
+        _wait_for_url(f"http://127.0.0.1:{frontend_port}/_stcore/health", "streamlit")
 
-        frontend_url = f"http://127.0.0.1:{args.frontend_port}"
-        docs_url = f"http://127.0.0.1:{args.backend_port}/docs"
+        frontend_url = f"http://127.0.0.1:{frontend_port}"
+        docs_url = f"{backend_url}/docs"
         print(f"Backend docs: {docs_url}")
         print(f"Demo UI: {frontend_url}")
         print("Press Ctrl+C to stop both services.")
@@ -139,6 +152,8 @@ def run_backend(args: argparse.Namespace) -> int:
 
 
 def run_frontend(args: argparse.Namespace) -> int:
+    env = os.environ.copy()
+    env.setdefault("AVITO_BACKEND_URL", "http://127.0.0.1:8000")
     command = [
         sys.executable,
         "-m",
@@ -150,7 +165,7 @@ def run_frontend(args: argparse.Namespace) -> int:
         "--server.port",
         str(args.port),
     ]
-    return subprocess.call(command, cwd=ROOT)
+    return subprocess.call(command, cwd=ROOT, env=env)
 
 
 def run_report() -> int:
@@ -172,6 +187,18 @@ def _wait_for_url(url: str, label: str, timeout: float = 30.0) -> None:
         except Exception:
             time.sleep(0.5)
     raise RuntimeError(f"Timed out waiting for {label} at {url}")
+
+
+def _find_available_port(host: str, preferred_port: int, search_limit: int = 20) -> int:
+    for port in range(preferred_port, preferred_port + search_limit):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind((host, port))
+            except OSError:
+                continue
+            return port
+    raise RuntimeError(f"Could not find available port starting from {preferred_port}")
 
 
 def _terminate(process: subprocess.Popen | None) -> None:
