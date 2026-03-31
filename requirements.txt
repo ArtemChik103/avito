@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+pydantic
+pymorphy3
+pymorphy3-dicts-ru
+pytest
+httpx

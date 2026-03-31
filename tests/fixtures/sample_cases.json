@@ -1,0 +1,15 @@
+[
+  {
+    "name": "confirmed_pair",
+    "item": {
+      "itemId": 7001,
+      "mcId": 201,
+      "mcTitle": "Ремонт квартир и домов под ключ",
+      "description": "Отдельно выполняем сантехнические и электромонтажные работы."
+    },
+    "expected": {
+      "shouldSplit": true,
+      "draftMcIds": [101, 102]
+    }
+  }
+]
