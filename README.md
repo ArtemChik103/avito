@@ -40,6 +40,12 @@ uvicorn src.avito_splitter.api:app --reload
 python run_project.py
 ```
 
+На Windows можно ещё проще:
+
+```bat
+run_project.bat
+```
+
 Это поднимет backend и Streamlit вместе. После старта открой:
 
 - `http://127.0.0.1:8501` — demo UI
