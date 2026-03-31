@@ -30,19 +30,55 @@ def _load_list(path: Path, model_type: type[ModelT]) -> list[ModelT]:
     return adapter.validate_python(raw_payload)
 
 
+def _ensure_unique_mcids(catalog: list[MicroCategory | EnrichedMicroCategory], source_name: str) -> None:
+    seen_ids: set[int] = set()
+    for entry in catalog:
+        if entry.mcId in seen_ids:
+            raise ValueError(f"{source_name} contains duplicate mcId={entry.mcId}")
+        seen_ids.add(entry.mcId)
+
+
 def load_raw_catalog(path: Path = RAW_CATALOG_PATH) -> list[MicroCategory]:
-    return _load_list(path, MicroCategory)
+    catalog = _load_list(path, MicroCategory)
+    _ensure_unique_mcids(catalog, "raw catalog")
+    return catalog
 
 
 def load_enriched_catalog(path: Path = ENRICHED_CATALOG_PATH) -> list[EnrichedMicroCategory]:
     catalog = _load_list(path, EnrichedMicroCategory)
-    for entry in catalog:
-        if not entry.matchPhrases:
-            raise ValueError(f"Enriched microcategory {entry.mcId} must define matchPhrases")
-        if not entry.draftLead.strip():
-            raise ValueError(f"Enriched microcategory {entry.mcId} must define draftLead")
+    _ensure_unique_mcids(catalog, "enriched catalog")
     return catalog
 
 
 def load_gold_examples(path: Path = GOLD_EXAMPLES_PATH) -> list[GoldExample]:
-    return _load_list(path, GoldExample)
+    examples = _load_list(path, GoldExample)
+    seen_names: set[str] = set()
+    for entry in examples:
+        if entry.name in seen_names:
+            raise ValueError(f"gold examples contain duplicate name={entry.name}")
+        seen_names.add(entry.name)
+    return examples
+
+
+def load_catalog_bundle(
+    raw_path: Path = RAW_CATALOG_PATH,
+    enriched_path: Path = ENRICHED_CATALOG_PATH,
+) -> tuple[list[MicroCategory], list[EnrichedMicroCategory]]:
+    raw_catalog = load_raw_catalog(raw_path)
+    enriched_catalog = load_enriched_catalog(enriched_path)
+
+    raw_by_id = {entry.mcId: entry for entry in raw_catalog}
+    enriched_by_id = {entry.mcId: entry for entry in enriched_catalog}
+
+    if raw_by_id.keys() != enriched_by_id.keys():
+        raise ValueError("raw and enriched catalogs must contain the same mcIds")
+
+    for mc_id, raw_entry in raw_by_id.items():
+        enriched_entry = enriched_by_id[mc_id]
+        if raw_entry.mcTitle != enriched_entry.mcTitle:
+            raise ValueError(f"mcTitle mismatch for mcId={mc_id}")
+        missing_phrases = set(raw_entry.keyPhrases) - set(enriched_entry.keyPhrases)
+        if missing_phrases:
+            raise ValueError(f"enriched catalog missing key phrases for mcId={mc_id}: {sorted(missing_phrases)}")
+
+    return raw_catalog, enriched_catalog
