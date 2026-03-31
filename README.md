@@ -34,6 +34,12 @@ pytest
 uvicorn src.avito_splitter.api:app --reload
 ```
 
+Для пересчета метрик на расширенном synthetic-наборе:
+
+```bash
+python -c "from pathlib import Path; from src.avito_splitter.evaluation import evaluate_file; print(evaluate_file(Path('data/synthetic_eval_examples.json')))"
+```
+
 После старта сервера доступны:
 
 - `GET /health`
@@ -66,3 +72,4 @@ uvicorn src.avito_splitter.api:app --reload
 
 - `pytest` покрывает preprocessing, extractor, independence analyzer, draft generator, pipeline и FastAPI API.
 - Закрыты обязательные регрессии: blocking-context, separate services, перечисление, исключение исходной категории, neutral-only mention, соседний clause и дедупликация черновиков.
+- Дополнительный synthetic evaluation dataset в `data/synthetic_eval_examples.json` расширяет покрытие до 25 размеченных кейсов для локального пересчета метрик.

@@ -51,11 +51,21 @@ def load_enriched_catalog(path: Path = ENRICHED_CATALOG_PATH) -> list[EnrichedMi
 
 
 def load_gold_examples(path: Path = GOLD_EXAMPLES_PATH) -> list[GoldExample]:
-    examples = _load_list(path, GoldExample)
+    examples = load_examples(path)
     seen_names: set[str] = set()
     for entry in examples:
         if entry.name in seen_names:
             raise ValueError(f"gold examples contain duplicate name={entry.name}")
+        seen_names.add(entry.name)
+    return examples
+
+
+def load_examples(path: Path) -> list[GoldExample]:
+    examples = _load_list(path, GoldExample)
+    seen_names: set[str] = set()
+    for entry in examples:
+        if entry.name in seen_names:
+            raise ValueError(f"examples contain duplicate name={entry.name}")
         seen_names.add(entry.name)
     return examples
 
