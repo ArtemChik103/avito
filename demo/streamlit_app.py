@@ -112,6 +112,10 @@ st.markdown("""
 
 # --- Logic setup ---
 DEMO_CASES_PATH = os.path.join(os.path.dirname(__file__), "demo_cases.json")
+ITEM_ID_KEY = "input_item_id"
+MC_ID_KEY = "input_mc_id"
+MC_TITLE_KEY = "input_mc_title"
+DESCRIPTION_KEY = "input_description"
 
 @st.cache_data
 def load_demo_cases():
@@ -132,14 +136,22 @@ def check_backend(url):
     except Exception:
         return False
 
+
+def apply_form_data(item):
+    st.session_state.form_data = item
+    st.session_state[ITEM_ID_KEY] = item["itemId"]
+    st.session_state[MC_ID_KEY] = item["mcId"]
+    st.session_state[MC_TITLE_KEY] = item["mcTitle"]
+    st.session_state[DESCRIPTION_KEY] = item["description"]
+
 # --- App State ---
 if 'form_data' not in st.session_state:
-    st.session_state.form_data = {
+    apply_form_data({
         "itemId": 1000,
         "mcId": 201,
         "mcTitle": "Ремонт квартир и домов под ключ",
         "description": ""
-    }
+    })
 if 'selected_expected' not in st.session_state:
     st.session_state.selected_expected = None
 
@@ -163,7 +175,7 @@ with st.sidebar:
     
     if st.button("Подставить кейс", use_container_width=True, type="primary"):
         c = case_options[selected_label]
-        st.session_state.form_data = c["item"]
+        apply_form_data(c["item"])
         st.session_state.selected_expected = {
             "shouldSplit": c["expectedShouldSplit"],
             "draftMcIds": c["expectedDraftMcIds"]
@@ -181,11 +193,11 @@ st.markdown('<div class="block-title">INPUT ADVERTISEMENT</div>', unsafe_allow_h
 with st.container():
     st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
-    item_id = c1.number_input("Item ID", value=st.session_state.form_data["itemId"], step=1, format="%d", key="input_item_id")
-    mc_id = c2.number_input("Microcategory ID", value=st.session_state.form_data["mcId"], step=1, format="%d", key="input_mc_id")
+    item_id = c1.number_input("Item ID", value=st.session_state.form_data["itemId"], step=1, format="%d", key=ITEM_ID_KEY)
+    mc_id = c2.number_input("Microcategory ID", value=st.session_state.form_data["mcId"], step=1, format="%d", key=MC_ID_KEY)
     
-    mc_title = st.text_input("Microcategory Title", value=st.session_state.form_data["mcTitle"], key="input_mc_title")
-    description = st.text_area("Description", value=st.session_state.form_data["description"], height=150, key="input_description")
+    mc_title = st.text_input("Microcategory Title", value=st.session_state.form_data["mcTitle"], key=MC_TITLE_KEY)
+    description = st.text_area("Description", value=st.session_state.form_data["description"], height=150, key=DESCRIPTION_KEY)
     
     process_btn = st.button("Обработать объявление", type="primary", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
