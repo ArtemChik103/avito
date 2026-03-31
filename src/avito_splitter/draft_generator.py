@@ -1,9 +1,28 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import re
 
 from .config import MAX_DRAFT_LENGTH, MAX_EVIDENCE_SENTENCES
+from .preprocessing import lemmatize_text
 from .schemas import Draft, EnrichedMicroCategory, EvidenceAssessment
+
+_TOKEN_RE = re.compile(r"[0-9a-zа-я]+", re.IGNORECASE)
+_GENERIC_SNIPPET_TOKENS = {
+    "а",
+    "и",
+    "или",
+    "также",
+    "отдельно",
+    "выполнять",
+    "делать",
+    "можно",
+    "заказать",
+    "как",
+    "отдельный",
+    "услуга",
+    "работа",
+}
 
 
 class DraftGenerator:
@@ -68,7 +87,7 @@ class DraftGenerator:
                 continue
             snippet = assessment.evidence.clauseText.strip(" ,;:.")
             normalized_key = snippet.lower()
-            if len(snippet) < 24 or normalized_key in seen:
+            if len(snippet) < 24 or normalized_key in seen or self._is_low_signal_snippet(assessment):
                 continue
             seen.add(normalized_key)
             snippets.append(self._ensure_period(snippet[:1].upper() + snippet[1:]))
@@ -82,3 +101,18 @@ class DraftGenerator:
         if phrases:
             return f"{self._ensure_period(category.draftLead)} Основные работы: {phrases}."
         return self._ensure_period(category.draftLead)
+
+    def _is_low_signal_snippet(self, assessment: EvidenceAssessment) -> bool:
+        snippet_tokens = self._content_tokens(assessment.evidence.clauseText)
+        if not snippet_tokens:
+            return True
+
+        matched_phrase_tokens = self._content_tokens(assessment.evidence.matchedPhrase)
+        if matched_phrase_tokens and snippet_tokens.issubset(matched_phrase_tokens):
+            return True
+
+        return False
+
+    def _content_tokens(self, text: str) -> set[str]:
+        lemma_tokens = _TOKEN_RE.findall(lemmatize_text(text))
+        return {token for token in lemma_tokens if token not in _GENERIC_SNIPPET_TOKENS}

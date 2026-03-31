@@ -7,12 +7,13 @@ def make_assessment(
     mc_title: str,
     clause_text: str,
     first_char_index: int = 0,
+    matched_phrase: str | None = None,
 ) -> EvidenceAssessment:
     return EvidenceAssessment(
         evidence=Evidence(
             mcId=mc_id,
             mcTitle=mc_title,
-            matchedPhrase=mc_title.lower(),
+            matchedPhrase=matched_phrase or mc_title.lower(),
             sentenceIndex=0,
             clauseIndex=0,
             clauseText=clause_text,
@@ -70,3 +71,19 @@ def test_uses_context_snippet_when_clause_is_specific() -> None:
 
     assert drafts[0].text
     assert "Отдельно выполняем монтаж натяжных потолков под ключ." in drafts[0].text
+
+
+def test_skips_tautological_context_snippet_and_uses_fallback() -> None:
+    category = EnrichedMicroCategory(
+        mcId=102,
+        mcTitle="Электрика",
+        keyPhrases=["электромонтаж", "замена проводки"],
+        matchPhrases=["электромонтаж"],
+        draftLead="Отдельно выполняем электромонтажные работы.",
+    )
+    drafts = DraftGenerator().generate(
+        {102: category},
+        [make_assessment(102, "Электрика", "а также делаем электромонтаж", matched_phrase="электромонтаж")],
+    )
+
+    assert drafts[0].text == "Отдельно выполняем электромонтажные работы. Основные работы: электромонтаж, замена проводки."
