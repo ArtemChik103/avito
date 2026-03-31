@@ -21,6 +21,14 @@ CONFIRMING_PATTERNS = (
 LIST_SEPARATORS = (",", ";", ":", " - ", " — ")
 SENTENCE_SPLIT_PATTERN = r"(?<=[.!?])\s+"
 CLAUSE_SPLIT_PATTERN = r"\s*(?:,|;|:| - | — )\s*"
+ENUMERATION_CONFIRMING_HINTS = (
+    "выполняем",
+    "делаем",
+    "предлагаем",
+    "оказываем",
+    "работы",
+    "услуги",
+)
 
 MAX_EVIDENCE_SENTENCES = 2
 MAX_DRAFT_LENGTH = 320

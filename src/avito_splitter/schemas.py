@@ -110,6 +110,7 @@ class ClauseContext(BaseModel):
 
     sentenceIndex: int
     clauseIndex: int
+    startCharIndex: int
     sentenceText: str
     clauseText: str
     clauseTextNormalized: str
