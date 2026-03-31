@@ -189,9 +189,9 @@ st.markdown("""
 Проект работает поверх уже существующего Backend API по HTTP.
 """)
 
-st.markdown('<div class="block-title">INPUT ADVERTISEMENT</div>', unsafe_allow_html=True)
+st.markdown('<div class="block-title">ADVERTISEMENT FORM</div>', unsafe_allow_html=True)
+st.caption("Ниже поля исходного объявления: itemId, mcId, mcTitle и description.")
 with st.container():
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     item_id = c1.number_input("Item ID", value=st.session_state.form_data["itemId"], step=1, format="%d", key=ITEM_ID_KEY)
     mc_id = c2.number_input("Microcategory ID", value=st.session_state.form_data["mcId"], step=1, format="%d", key=MC_ID_KEY)
@@ -200,7 +200,6 @@ with st.container():
     description = st.text_area("Description", value=st.session_state.form_data["description"], height=150, key=DESCRIPTION_KEY)
     
     process_btn = st.button("Обработать объявление", type="primary", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
 if process_btn:
     if not description.strip():
