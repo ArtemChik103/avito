@@ -63,6 +63,12 @@ python run_project.py backend
 python run_project.py frontend
 ```
 
+Для smoke e2e в реальном браузере через Playwright:
+
+```bash
+pytest tests/test_playwright_e2e.py
+```
+
 Для пересчета метрик на расширенном synthetic-наборе:
 
 ```bash

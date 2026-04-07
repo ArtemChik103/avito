@@ -2,6 +2,7 @@ import streamlit as st
 import httpx
 import json
 import os
+from pathlib import Path
 
 # --- Visual Theme and CSS ---
 # Deep dark background, semi-transparent frosted glass containers, clear typography
@@ -27,6 +28,11 @@ st.markdown("""
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    section[data-testid="stSidebar"][aria-expanded="true"] {
+        min-width: 340px !important;
+        max-width: 340px !important;
     }
 
     .glass-panel {
@@ -112,9 +118,11 @@ st.markdown("""
 
 # --- Logic setup ---
 DEMO_CASES_PATH = os.path.join(os.path.dirname(__file__), "demo_cases.json")
+CATEGORY_CATALOG_PATH = Path(__file__).resolve().parents[1] / "data" / "microcategories.enriched.json"
 ITEM_ID_KEY = "input_item_id"
 MC_ID_KEY = "input_mc_id"
 MC_TITLE_KEY = "input_mc_title"
+CATEGORY_SELECT_KEY = "input_category_select"
 DESCRIPTION_KEY = "input_description"
 
 @st.cache_data
@@ -126,8 +134,24 @@ def load_demo_cases():
         st.error(f"Failed to load demo cases: {e}")
         return []
 
+
+@st.cache_data
+def load_category_options():
+    try:
+        payload = json.loads(CATEGORY_CATALOG_PATH.read_text(encoding="utf-8"))
+    except Exception as e:
+        st.error(f"Failed to load microcategories: {e}")
+        return [], {}
+
+    titles = [entry["mcTitle"] for entry in payload]
+    ids_by_title = {entry["mcTitle"]: entry["mcId"] for entry in payload}
+    return titles, ids_by_title
+
+
 cases = load_demo_cases()
 case_options = {c["label"]: c for c in cases}
+category_titles, category_ids_by_title = load_category_options()
+category_titles_by_id = {mc_id: title for title, mc_id in category_ids_by_title.items()}
 
 def check_backend(url):
     try:
@@ -137,11 +161,25 @@ def check_backend(url):
         return False
 
 
+def resolve_category_title(item):
+    if item["mcTitle"] in category_ids_by_title:
+        return item["mcTitle"]
+    return category_titles_by_id.get(item["mcId"], category_titles[0] if category_titles else item["mcTitle"])
+
+
 def apply_form_data(item):
-    st.session_state.form_data = item
+    selected_title = resolve_category_title(item)
+    selected_mc_id = category_ids_by_title.get(selected_title, item["mcId"])
+    st.session_state.form_data = {
+        "itemId": item["itemId"],
+        "mcId": selected_mc_id,
+        "mcTitle": selected_title,
+        "description": item["description"],
+    }
     st.session_state[ITEM_ID_KEY] = item["itemId"]
-    st.session_state[MC_ID_KEY] = item["mcId"]
-    st.session_state[MC_TITLE_KEY] = item["mcTitle"]
+    st.session_state[MC_ID_KEY] = selected_mc_id
+    st.session_state[MC_TITLE_KEY] = selected_title
+    st.session_state[CATEGORY_SELECT_KEY] = selected_title
     st.session_state[DESCRIPTION_KEY] = item["description"]
 
 # --- App State ---
@@ -154,25 +192,27 @@ if 'form_data' not in st.session_state:
     })
 if 'selected_expected' not in st.session_state:
     st.session_state.selected_expected = None
+if 'selected_case_item' not in st.session_state:
+    st.session_state.selected_case_item = None
 
 # Sidebar
 with st.sidebar:
-    st.title("⚙️ Settings & Status")
+    st.title("Настройки и статус")
     
     default_backend_url = os.getenv("AVITO_BACKEND_URL", "http://127.0.0.1:8000")
-    backend_url = st.text_input("Backend URL", value=default_backend_url)
+    backend_url = st.text_input("URL backend", value=default_backend_url)
     
     is_online = check_backend(backend_url)
     if is_online:
-        st.markdown("🟢 **Backend Status**: Online")
+        st.markdown("🟢 **Backend**: доступен")
     else:
-        st.markdown("🔴 **Backend Status**: Offline")
-        st.caption("Run: `uvicorn src.avito_splitter.api:app --reload`")
+        st.markdown("🔴 **Backend**: недоступен")
+        st.caption("Запуск: `uvicorn src.avito_splitter.api:app --reload`")
     
     st.markdown("---")
-    st.subheader("📋 Load Demo Case")
+    st.subheader("Demo-кейсы")
     
-    selected_label = st.selectbox("Select a scenario:", options=list(case_options.keys()))
+    selected_label = st.selectbox("Сценарий", options=list(case_options.keys()))
     
     if st.button("Подставить кейс", use_container_width=True, type="primary"):
         c = case_options[selected_label]
@@ -181,6 +221,7 @@ with st.sidebar:
             "shouldSplit": c["expectedShouldSplit"],
             "draftMcIds": c["expectedDraftMcIds"]
         }
+        st.session_state.selected_case_item = c["item"]
         st.rerun()
 
 # Main UI
@@ -190,15 +231,18 @@ st.markdown("""
 Проект работает поверх уже существующего Backend API по HTTP.
 """)
 
-st.markdown('<div class="block-title">ADVERTISEMENT FORM</div>', unsafe_allow_html=True)
-st.caption("Ниже поля исходного объявления: itemId, mcId, mcTitle и description.")
+st.markdown('<div class="block-title">ИСХОДНОЕ ОБЪЯВЛЕНИЕ</div>', unsafe_allow_html=True)
+st.caption("Заполни `itemId`, выбери исходную микрокатегорию и вставь текст объявления.")
 with st.container():
     c1, c2 = st.columns(2)
     item_id = c1.number_input("Item ID", value=st.session_state.form_data["itemId"], step=1, format="%d", key=ITEM_ID_KEY)
-    mc_id = c2.number_input("Microcategory ID", value=st.session_state.form_data["mcId"], step=1, format="%d", key=MC_ID_KEY)
-    
-    mc_title = st.text_input("Microcategory Title", value=st.session_state.form_data["mcTitle"], key=MC_TITLE_KEY)
-    description = st.text_area("Description", value=st.session_state.form_data["description"], height=150, key=DESCRIPTION_KEY)
+    selected_category = c2.selectbox("Микрокатегория", options=category_titles, key=CATEGORY_SELECT_KEY)
+    mc_id = category_ids_by_title[selected_category]
+    st.session_state[MC_ID_KEY] = mc_id
+    st.session_state[MC_TITLE_KEY] = selected_category
+
+    st.caption(f"ID выбранной микрокатегории: `{mc_id}`")
+    description = st.text_area("Описание", value=st.session_state.form_data["description"], height=150, key=DESCRIPTION_KEY)
     
     process_btn = st.button("Обработать объявление", type="primary", use_container_width=True)
 
@@ -211,11 +255,12 @@ if process_btn:
         payload = {
             "itemId": item_id,
             "mcId": mc_id,
-            "mcTitle": mc_title,
+            "mcTitle": selected_category,
             "description": description
         }
+        st.session_state.form_data = payload
         
-        with st.spinner("Analyzing advertisement..."):
+        with st.spinner("Анализируем объявление..."):
             try:
                 response = httpx.post(f"{backend_url}/split", json=payload, timeout=10.0)
                 if response.status_code == 200:
@@ -224,7 +269,7 @@ if process_btn:
                         should_split = result.get("shouldSplit", False)
                         drafts = result.get("drafts", [])
                         
-                        st.markdown('<div class="block-title">BACKEND DECISION</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="block-title">РЕШЕНИЕ BACKEND</div>', unsafe_allow_html=True)
                         
                         panel_class = "success-panel" if should_split else "neutral-panel"
                         verdict_text = "ДА (Обнаружено несколько услуг)" if should_split else "НЕТ (Самодостаточная услуга или нет маркеров)"
@@ -237,20 +282,23 @@ if process_btn:
                         ''', unsafe_allow_html=True)
                         
                         exp = st.session_state.selected_expected
-                        if exp and description == st.session_state.form_data.get("description"):
+                        selected_case_item = st.session_state.selected_case_item
+                        if exp and selected_case_item and payload == selected_case_item:
                             exp_should, exp_drafts = exp["shouldSplit"], exp["draftMcIds"]
                             actual_drafts = [d["mcId"] for d in drafts]
                             
                             has_mismatch = (bool(exp_should) != bool(should_split)) or (set(exp_drafts) != set(actual_drafts))
                             if has_mismatch:
-                                st.warning(f"⚠️ **Mismatch with Demo Expectations!**\n\n"
-                                           f"Expected shouldSplit: {exp_should}, Actual: {should_split}\n\n"
-                                           f"Expected drafts: {exp_drafts}, Actual: {actual_drafts}")
+                                st.warning(
+                                    "⚠️ Несовпадение с эталоном demo-кейса.\n\n"
+                                    f"Ожидали shouldSplit: {exp_should}, получили: {should_split}\n\n"
+                                    f"Ожидали drafts: {exp_drafts}, получили: {actual_drafts}"
+                                )
                             else:
                                 st.success("✅ Сверен с эталоном (demo case): 100% совпадение")
 
                         if should_split and drafts:
-                            st.markdown('<div class="block-title">GENERATED DRAFTS</div>', unsafe_allow_html=True)
+                            st.markdown('<div class="block-title">СГЕНЕРИРОВАННЫЕ ЧЕРНОВИКИ</div>', unsafe_allow_html=True)
                             st.markdown(f'<p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 16px;">Количество черновиков: {len(drafts)}</p>', unsafe_allow_html=True)
                             
                             for i, d in enumerate(drafts):

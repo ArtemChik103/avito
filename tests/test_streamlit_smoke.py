@@ -10,6 +10,13 @@ def make_app() -> AppTest:
     return AppTest.from_file(str(APP_PATH), default_timeout=20)
 
 
+def find_by_label(elements, label: str):
+    for element in elements:
+        if getattr(element, "label", None) == label:
+            return element
+    raise AssertionError(f"Element with label {label!r} not found")
+
+
 def test_streamlit_demo_file_exists_and_compiles() -> None:
     assert APP_PATH.exists()
     compile(APP_PATH.read_text("utf-8"), APP_PATH.name, "exec")
@@ -19,14 +26,14 @@ def test_streamlit_shows_backend_error_when_api_is_offline() -> None:
     app = make_app()
     app.run()
 
-    assert app.text_input[1].label == "Backend URL"
-    assert app.button[0].label == "Обработать объявление"
+    assert find_by_label(app.text_input, "URL backend")
+    assert find_by_label(app.button, "Обработать объявление")
 
-    app.text_input[1].set_value("http://127.0.0.1:65530")
+    find_by_label(app.text_input, "URL backend").set_value("http://127.0.0.1:65530")
     app.run()
     app.text_area[0].set_value("Отдельно выполняем сантехнические работы.")
     app.run()
-    app.button[0].click()
+    find_by_label(app.button, "Обработать объявление").click()
     app.run()
 
     assert not app.exception
@@ -60,17 +67,18 @@ def test_streamlit_loads_demo_case_and_renders_happy_path(monkeypatch) -> None:
     app = make_app()
     app.run()
 
-    assert app.selectbox[0].label == "Select a scenario:"
-    assert app.button[1].label == "Подставить кейс"
+    assert find_by_label(app.selectbox, "Сценарий")
+    assert find_by_label(app.button, "Подставить кейс")
+    assert find_by_label(app.selectbox, "Микрокатегория")
 
-    app.selectbox[0].select("Отдельные услуги (со split на 2 категории)")
+    find_by_label(app.selectbox, "Сценарий").select("Отдельные услуги")
     app.run()
-    app.button[1].click()
+    find_by_label(app.button, "Подставить кейс").click()
     app.run()
 
     assert app.text_area[0].value == "Отдельно выполняем сантехнические и электромонтажные работы."
 
-    app.button[0].click()
+    find_by_label(app.button, "Обработать объявление").click()
     app.run()
 
     assert not app.exception
