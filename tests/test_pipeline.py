@@ -17,7 +17,7 @@ def test_pipeline_allows_neighbor_clause_confirmation() -> None:
     splitter = ServicesSplitter()
     item = AdInput(
         itemId=6001,
-        mcId=201,
+        mcId=101,
         mcTitle="Ремонт квартир и домов под ключ",
         description="Сантехника, а также отдельно выполняем электромонтажные работы.",
     )
@@ -25,14 +25,14 @@ def test_pipeline_allows_neighbor_clause_confirmation() -> None:
     response = splitter.process(item)
 
     assert response.shouldSplit is True
-    assert [draft.mcId for draft in response.drafts] == [101, 102]
+    assert [draft.mcId for draft in response.drafts] == [102, 103]
 
 
 def test_pipeline_returns_single_draft_for_repeated_category_mentions() -> None:
     splitter = ServicesSplitter()
     item = AdInput(
         itemId=6002,
-        mcId=201,
+        mcId=101,
         mcTitle="Ремонт квартир и домов под ключ",
         description="Отдельно выполняем сантехнику. Сантехника отдельно и еще раз сантехника отдельно.",
     )
@@ -40,4 +40,4 @@ def test_pipeline_returns_single_draft_for_repeated_category_mentions() -> None:
     response = splitter.process(item)
 
     assert response.shouldSplit is True
-    assert [draft.mcId for draft in response.drafts] == [101]
+    assert [draft.mcId for draft in response.drafts] == [102]

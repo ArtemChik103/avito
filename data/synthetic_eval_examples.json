@@ -3,7 +3,7 @@
     "name": "syn_block_including_two_services",
     "item": {
       "itemId": 10001,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Делаем ремонт под ключ, включая электрику и сантехнику."
     },
@@ -16,7 +16,7 @@
     "name": "syn_block_as_part_of_complex_service",
     "item": {
       "itemId": 10002,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Сантехника выполняется как часть комплексного ремонта квартиры."
     },
@@ -29,7 +29,7 @@
     "name": "syn_block_in_framework",
     "item": {
       "itemId": 10003,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "В рамках ремонта делаем натяжные потолки и плиточные работы."
     },
@@ -42,7 +42,7 @@
     "name": "syn_block_included_in_price",
     "item": {
       "itemId": 10004,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Электрика входит в стоимость ремонта под ключ."
     },
@@ -55,7 +55,7 @@
     "name": "syn_block_together_with",
     "item": {
       "itemId": 10005,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Монтаж натяжного потолка делаем вместе с комплексной отделкой."
     },
@@ -68,85 +68,104 @@
     "name": "syn_confirm_otdelno_two_services",
     "item": {
       "itemId": 10006,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Отдельно выполняем сантехнические и электромонтажные работы."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101, 102]
+      "draftMcIds": [
+        102,
+        103
+      ]
     }
   },
   {
     "name": "syn_confirm_mozhno_zakazat",
     "item": {
       "itemId": 10007,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Разводку труб можно заказать отдельно."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101]
+      "draftMcIds": [
+        102
+      ]
     }
   },
   {
     "name": "syn_confirm_kak_otdelnaya_usluga",
     "item": {
       "itemId": 10008,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Монтаж натяжного потолка выполняем как отдельная услуга."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [103]
+      "draftMcIds": [
+        104
+      ]
     }
   },
   {
     "name": "syn_confirm_neighbor_clause",
     "item": {
       "itemId": 10009,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Сантехника, а также отдельно выполняем электромонтажные работы."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101, 102]
+      "draftMcIds": [
+        102,
+        103
+      ]
     }
   },
   {
     "name": "syn_confirm_enumeration_three_services",
     "item": {
       "itemId": 10010,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Выполняем электрику, сантехнику, натяжные потолки."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [102, 101, 103]
+      "draftMcIds": [
+        103,
+        102,
+        104
+      ]
     }
   },
   {
     "name": "syn_confirm_enumeration_four_services",
     "item": {
       "itemId": 10011,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Предлагаем электрику, сантехнику, натяжные потолки, плиточные работы."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [102, 101, 103, 104]
+      "draftMcIds": [
+        103,
+        102,
+        104,
+        105
+      ]
     }
   },
   {
     "name": "syn_neutral_with_services_in_context",
     "item": {
       "itemId": 10012,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Выполняем ремонт под ключ с электрикой и сантехникой."
     },
@@ -159,7 +178,7 @@
     "name": "syn_neutral_bare_mentions_without_marker",
     "item": {
       "itemId": 10013,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Делаем электрику и сантехнику в квартирах и домах."
     },
@@ -172,98 +191,114 @@
     "name": "syn_mixed_blocked_then_confirmed",
     "item": {
       "itemId": 10014,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Ремонт под ключ, включая электрику. Отдельно выполняем электромонтажные работы."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [102]
+      "draftMcIds": [
+        103
+      ]
     }
   },
   {
     "name": "syn_source_exclusion_from_santehnika",
     "item": {
       "itemId": 10015,
-      "mcId": 101,
+      "mcId": 102,
       "mcTitle": "Сантехника",
       "description": "Сантехнические работы выполняем отдельно, а также делаем электромонтаж."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [102]
+      "draftMcIds": [
+        103
+      ]
     }
   },
   {
     "name": "syn_source_exclusion_from_elektrika",
     "item": {
       "itemId": 10016,
-      "mcId": 102,
+      "mcId": 103,
       "mcTitle": "Электрика",
       "description": "Электрику выполняем отдельно, а также отдельно делаем сантехнику."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101]
+      "draftMcIds": [
+        102
+      ]
     }
   },
   {
     "name": "syn_repeated_single_category",
     "item": {
       "itemId": 10017,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Отдельно выполняем сантехнику. Сантехника отдельно и еще раз сантехника отдельно."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101]
+      "draftMcIds": [
+        102
+      ]
     }
   },
   {
     "name": "syn_order_by_first_confirmed_appearance",
     "item": {
       "itemId": 10018,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Отдельно выполняем плиточные работы. Также выполняем сантехнические работы отдельно."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [104, 101]
+      "draftMcIds": [
+        105,
+        102
+      ]
     }
   },
   {
     "name": "syn_neighbor_clause_previous_evidence",
     "item": {
       "itemId": 10019,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Натяжные потолки, а также отдельно выполняем монтаж освещения и ремонт."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [103]
+      "draftMcIds": [
+        104,
+        103
+      ]
     }
   },
   {
     "name": "syn_confirm_tiles_separate_service",
     "item": {
       "itemId": 10020,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Плиточные работы выполняем как отдельная услуга."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [104]
+      "draftMcIds": [
+        105
+      ]
     }
   },
   {
     "name": "syn_block_tiles_including",
     "item": {
       "itemId": 10021,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Делаем ремонт ванной, включая плиточные работы."
     },
@@ -276,52 +311,63 @@
     "name": "syn_confirm_ceiling_orderable",
     "item": {
       "itemId": 10022,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Монтаж натяжного потолка можно заказать отдельно."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [103]
+      "draftMcIds": [
+        104
+      ]
     }
   },
   {
     "name": "syn_block_source_category_not_returned",
     "item": {
       "itemId": 10023,
-      "mcId": 103,
+      "mcId": 104,
       "mcTitle": "Натяжные потолки",
       "description": "Натяжные потолки выполняем отдельно, а также сантехнические работы можно заказать отдельно."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101]
+      "draftMcIds": [
+        102
+      ]
     }
   },
   {
     "name": "syn_confirm_takzhe_vypolnyaem_list",
     "item": {
       "itemId": 10024,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Также выполняем электрику, сантехнику и плиточные работы."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [102, 101, 104]
+      "draftMcIds": [
+        103,
+        102,
+        105
+      ]
     }
   },
   {
     "name": "syn_confirm_with_source_mentioned_but_excluded",
     "item": {
       "itemId": 10025,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Отдельно выполняем ремонт под ключ, сантехнику и электрику."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101, 102]
+      "draftMcIds": [
+        102,
+        103
+      ]
     }
   }
 ]

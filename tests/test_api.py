@@ -9,7 +9,7 @@ def test_post_split_happy_path() -> None:
             "/split",
             json={
                 "itemId": 8001,
-                "mcId": 201,
+                "mcId": 101,
                 "mcTitle": "Ремонт квартир и домов под ключ",
                 "description": "Делаем ремонт квартир под ключ, а также отдельно выполняем сантехнические и электромонтажные работы.",
             },
@@ -17,7 +17,7 @@ def test_post_split_happy_path() -> None:
 
     assert response.status_code == 200
     assert response.json()["shouldSplit"] is True
-    assert [draft["mcId"] for draft in response.json()["drafts"]] == [101, 102]
+    assert [draft["mcId"] for draft in response.json()["drafts"]] == [102, 103]
 
 
 def test_post_split_empty_result() -> None:
@@ -26,7 +26,7 @@ def test_post_split_empty_result() -> None:
             "/split",
             json={
                 "itemId": 8002,
-                "mcId": 201,
+                "mcId": 101,
                 "mcTitle": "Ремонт квартир и домов под ключ",
                 "description": "Делаем ремонт под ключ, включая электрику и сантехнику.",
             },

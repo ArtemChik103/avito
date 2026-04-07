@@ -31,6 +31,22 @@ class DraftGenerator:
         catalog: dict[int, EnrichedMicroCategory],
         assessments: list[EvidenceAssessment],
     ) -> list[Draft]:
+        ordered_ids: list[int] = []
+        seen_ids: set[int] = set()
+        for assessment in sorted(assessments, key=lambda item: item.evidence.firstCharIndex):
+            if assessment.status != "confirmed" or assessment.evidence.mcId in seen_ids:
+                continue
+            seen_ids.add(assessment.evidence.mcId)
+            ordered_ids.append(assessment.evidence.mcId)
+
+        return self.generate_for_category_ids(catalog, assessments, ordered_ids)
+
+    def generate_for_category_ids(
+        self,
+        catalog: dict[int, EnrichedMicroCategory],
+        assessments: list[EvidenceAssessment],
+        category_ids: list[int],
+    ) -> list[Draft]:
         confirmed_by_category: dict[int, list[EvidenceAssessment]] = defaultdict(list)
         confirmed_by_clause: dict[tuple[int, int], set[int]] = defaultdict(set)
         for assessment in assessments:
@@ -40,15 +56,18 @@ class DraftGenerator:
                     (assessment.evidence.sentenceIndex, assessment.evidence.clauseIndex)
                 ].add(assessment.evidence.mcId)
 
-        ordered_categories = sorted(
-            confirmed_by_category.items(),
-            key=lambda item: min(assessment.evidence.firstCharIndex for assessment in item[1]),
-        )
-
         drafts: list[Draft] = []
-        for mc_id, confirmed_assessments in ordered_categories:
+        seen_ids: set[int] = set()
+        for mc_id in category_ids:
+            if mc_id in seen_ids:
+                continue
+            seen_ids.add(mc_id)
             category = catalog[mc_id]
-            text = self._build_text(category, confirmed_assessments, confirmed_by_clause)
+            confirmed_assessments = confirmed_by_category.get(mc_id, [])
+            if confirmed_assessments:
+                text = self._build_text(category, confirmed_assessments, confirmed_by_clause)
+            else:
+                text = self._build_fallback_text(category)
             drafts.append(Draft(mcId=category.mcId, mcTitle=category.mcTitle, text=text))
 
         return drafts

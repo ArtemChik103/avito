@@ -3,7 +3,7 @@
     "name": "blocking_including_case",
     "item": {
       "itemId": 5001,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Делаем ремонт под ключ, включая электрику и сантехнику."
     },
@@ -16,46 +16,55 @@
     "name": "confirmed_separate_services_case",
     "item": {
       "itemId": 5002,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Делаем ремонт квартир под ключ, а также отдельно выполняем сантехнические и электромонтажные работы."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [101, 102]
+      "draftMcIds": [
+        102,
+        103
+      ]
     }
   },
   {
     "name": "enumeration_without_blocking_case",
     "item": {
       "itemId": 5003,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Выполняем ремонт, электрику, сантехнику, натяжные потолки."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [102, 101, 103]
+      "draftMcIds": [
+        103,
+        102,
+        104
+      ]
     }
   },
   {
     "name": "exclude_source_category_case",
     "item": {
       "itemId": 5004,
-      "mcId": 101,
+      "mcId": 102,
       "mcTitle": "Сантехника",
       "description": "Сантехнические работы выполняем отдельно, а также делаем электромонтаж."
     },
     "expected": {
       "shouldSplit": true,
-      "draftMcIds": [102]
+      "draftMcIds": [
+        103
+      ]
     }
   },
   {
     "name": "neutral_only_case",
     "item": {
       "itemId": 5005,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Выполняем ремонт под ключ с электрикой и сантехникой."
     },

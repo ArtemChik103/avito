@@ -48,8 +48,8 @@ def test_streamlit_loads_demo_case_and_renders_happy_path(monkeypatch) -> None:
             json={
                 "shouldSplit": True,
                 "drafts": [
-                    {"mcId": 101, "mcTitle": "Сантехника", "text": "Draft A"},
-                    {"mcId": 102, "mcTitle": "Электрика", "text": "Draft B"},
+                    {"mcId": 102, "mcTitle": "Сантехника", "text": "Draft A"},
+                    {"mcId": 103, "mcTitle": "Электрика", "text": "Draft B"},
                 ],
             },
         )

@@ -148,7 +148,7 @@ def apply_form_data(item):
 if 'form_data' not in st.session_state:
     apply_form_data({
         "itemId": 1000,
-        "mcId": 201,
+        "mcId": 101,
         "mcTitle": "Ремонт квартир и домов под ключ",
         "description": ""
     })

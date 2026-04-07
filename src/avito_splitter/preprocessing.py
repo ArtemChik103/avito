@@ -15,6 +15,22 @@ _PUNCT_SPACING_RE = re.compile(r"\s*([,;:.!?])\s*")
 _DASH_RE = re.compile(r"\s*[–—−]+\s*")
 _SENTENCE_SPLIT_RE = re.compile(SENTENCE_SPLIT_PATTERN)
 _CLAUSE_SPLIT_RE = re.compile(CLAUSE_SPLIT_PATTERN)
+_LATIN_TO_CYRILLIC = str.maketrans(
+    {
+        "a": "а",
+        "b": "в",
+        "c": "с",
+        "e": "е",
+        "h": "н",
+        "k": "к",
+        "m": "м",
+        "o": "о",
+        "p": "р",
+        "t": "т",
+        "x": "х",
+        "y": "у",
+    }
+)
 
 
 @lru_cache(maxsize=8192)
@@ -40,6 +56,7 @@ def expand_phrase_variants(text: str) -> tuple[str, ...]:
 
 def normalize_text(text: str) -> str:
     normalized = text.lower().replace("ё", "е")
+    normalized = normalized.translate(_LATIN_TO_CYRILLIC)
     normalized = _DASH_RE.sub(" — ", normalized)
     normalized = normalized.replace("\r", " ").replace("\n", " ")
     normalized = _PUNCT_SPACING_RE.sub(r"\1 ", normalized)

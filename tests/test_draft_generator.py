@@ -28,16 +28,16 @@ def make_assessment(
 
 def test_generates_fallback_template_and_preserves_identity() -> None:
     category = EnrichedMicroCategory(
-        mcId=101,
+        mcId=102,
         mcTitle="Сантехника",
         keyPhrases=["разводка труб", "установка сантехники"],
         matchPhrases=["сантехника"],
         draftLead="Отдельно выполняем сантехнические работы.",
     )
-    drafts = DraftGenerator().generate({101: category}, [make_assessment(101, "Сантехника", "сантехника")])
+    drafts = DraftGenerator().generate({102: category}, [make_assessment(102, "Сантехника", "сантехника")])
 
     assert len(drafts) == 1
-    assert drafts[0].mcId == 101
+    assert drafts[0].mcId == 102
     assert drafts[0].mcTitle == "Сантехника"
     assert drafts[0].text.startswith("Отдельно выполняем сантехнические работы.")
     assert "разводка труб" in drafts[0].text
@@ -45,28 +45,28 @@ def test_generates_fallback_template_and_preserves_identity() -> None:
 
 def test_limits_draft_length() -> None:
     category = EnrichedMicroCategory(
-        mcId=102,
+        mcId=103,
         mcTitle="Электрика",
         keyPhrases=["очень длинная ключевая фраза " * 8, "вторая очень длинная фраза " * 8],
         matchPhrases=["электрика"],
         draftLead="Очень длинное вводное предложение " * 12,
     )
-    drafts = DraftGenerator().generate({102: category}, [make_assessment(102, "Электрика", "электрика")])
+    drafts = DraftGenerator().generate({103: category}, [make_assessment(103, "Электрика", "электрика")])
 
     assert len(drafts[0].text) <= 320
 
 
 def test_uses_context_snippet_when_clause_is_specific() -> None:
     category = EnrichedMicroCategory(
-        mcId=103,
+        mcId=104,
         mcTitle="Натяжные потолки",
         keyPhrases=["натяжные потолки"],
         matchPhrases=["натяжные потолки"],
         draftLead="Выполняем монтаж натяжных потолков как отдельную услугу.",
     )
     drafts = DraftGenerator().generate(
-        {103: category},
-        [make_assessment(103, "Натяжные потолки", "отдельно выполняем монтаж натяжных потолков под ключ")],
+        {104: category},
+        [make_assessment(104, "Натяжные потолки", "отдельно выполняем монтаж натяжных потолков под ключ")],
     )
 
     assert drafts[0].text
@@ -75,15 +75,15 @@ def test_uses_context_snippet_when_clause_is_specific() -> None:
 
 def test_skips_tautological_context_snippet_and_uses_fallback() -> None:
     category = EnrichedMicroCategory(
-        mcId=102,
+        mcId=103,
         mcTitle="Электрика",
         keyPhrases=["электромонтаж", "замена проводки"],
         matchPhrases=["электромонтаж"],
         draftLead="Отдельно выполняем электромонтажные работы.",
     )
     drafts = DraftGenerator().generate(
-        {102: category},
-        [make_assessment(102, "Электрика", "а также делаем электромонтаж", matched_phrase="электромонтаж")],
+        {103: category},
+        [make_assessment(103, "Электрика", "а также делаем электромонтаж", matched_phrase="электромонтаж")],
     )
 
     assert drafts[0].text == "Отдельно выполняем электромонтажные работы. Основные работы: электромонтаж, замена проводки."

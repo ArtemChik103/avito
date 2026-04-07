@@ -75,6 +75,12 @@ python -c "from pathlib import Path; from src.avito_splitter.evaluation import e
 python run_project.py report
 ```
 
+Для аудита экспертного датасета `rnc_dataset_markup.json/.csv`:
+
+```bash
+python -m src.avito_splitter.expert_dataset_audit
+```
+
 После старта сервера доступны:
 
 - `GET /health`
@@ -86,7 +92,7 @@ python run_project.py report
 ```json
 {
   "itemId": 5002,
-  "mcId": 201,
+  "mcId": 101,
   "mcTitle": "Ремонт квартир и домов под ключ",
   "description": "Делаем ремонт квартир под ключ, а также отдельно выполняем сантехнические и электромонтажные работы."
 }

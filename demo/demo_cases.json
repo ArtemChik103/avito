@@ -3,7 +3,7 @@
     "label": "Комплексная услуга (без split)",
     "item": {
       "itemId": 1001,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Делаем ремонт под ключ, включая электрику и сантехнику."
     },
@@ -14,40 +14,49 @@
     "label": "Отдельные услуги (со split на 2 категории)",
     "item": {
       "itemId": 1002,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Отдельно выполняем сантехнические и электромонтажные работы."
     },
     "expectedShouldSplit": true,
-    "expectedDraftMcIds": [101, 102]
+    "expectedDraftMcIds": [
+      102,
+      103
+    ]
   },
   {
     "label": "Кейс с перечислением",
     "item": {
       "itemId": 1003,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Выполняем электрику, сантехнику, натяжные потолки."
     },
     "expectedShouldSplit": true,
-    "expectedDraftMcIds": [102, 101, 103]
+    "expectedDraftMcIds": [
+      103,
+      102,
+      104
+    ]
   },
   {
     "label": "Исходная категория исключается",
     "item": {
       "itemId": 1004,
-      "mcId": 101,
+      "mcId": 102,
       "mcTitle": "Сантехника",
       "description": "Сантехнические работы выполняем отдельно, а также делаем электромонтаж."
     },
     "expectedShouldSplit": true,
-    "expectedDraftMcIds": [102]
+    "expectedDraftMcIds": [
+      103
+    ]
   },
   {
     "label": "Neutral-only mention",
     "item": {
       "itemId": 1005,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Делаем электрику и сантехнику в квартирах и домах."
     },
@@ -58,11 +67,13 @@
     "label": "Пограничный (blocking vs confirming)",
     "item": {
       "itemId": 1006,
-      "mcId": 201,
+      "mcId": 101,
       "mcTitle": "Ремонт квартир и домов под ключ",
       "description": "Ремонт под ключ, включая электрику. Отдельно выполняем электромонтажные работы."
     },
     "expectedShouldSplit": true,
-    "expectedDraftMcIds": [102]
+    "expectedDraftMcIds": [
+      103
+    ]
   }
 ]
