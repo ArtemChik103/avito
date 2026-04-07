@@ -131,6 +131,14 @@ Launcher поднимет:
 
 Если порты заняты, launcher сам выберет следующие свободные и напечатает их в терминале.
 
+Для публичного demo через ngrok:
+
+```powershell
+python run_project.py public --ngrok-authtoken <your-ngrok-token>
+```
+
+Если токен уже сохранен в системе, задан через `NGROK_AUTHTOKEN` или лежит в локальном файле `.avito.local.env`, аргумент можно не передавать.
+
 ## Подготовка Чистой Машины
 
 Минимально нужно:
@@ -207,6 +215,39 @@ python run_project.py backend
 
 ```powershell
 python run_project.py frontend
+```
+
+### Вариант 5. Публичный Demo Через ngrok
+
+```powershell
+python run_project.py public --ngrok-authtoken <your-ngrok-token>
+```
+
+Что делает launcher:
+
+- поднимает локальный backend
+- поднимает локальный Streamlit UI
+- поднимает ngrok tunnel для Streamlit demo UI
+- печатает публичную demo-ссылку в терминале
+- открывает публичную demo-ссылку в браузере, если не указан `--no-browser`
+
+Полезные варианты:
+
+```powershell
+python run_project.py public --ngrok-authtoken <your-ngrok-token>
+python run_project.py public --no-browser
+python run_project.py public --ngrok-path "C:\Users\<user>\AppData\Local\Programs\ngrok\ngrok.exe"
+```
+
+Локальный файл для токена:
+
+- шаблон: [.avito.local.env.example](.avito.local.env.example)
+- реальный локальный файл: `.avito.local.env`
+
+Файл `.avito.local.env` добавлен в `.gitignore`, поэтому токен можно хранить там без попадания в репозиторий:
+
+```text
+NGROK_AUTHTOKEN=<your-ngrok-token>
 ```
 
 ## Demo UI
