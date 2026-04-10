@@ -22,163 +22,338 @@ HTTP_TIMEOUT = 10.0
 HEALTH_TIMEOUT = 2.0
 
 APP_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
 :root {
-    --page-bg: #0b1220;
-    --panel-bg: rgba(15, 23, 42, 0.84);
-    --panel-border: rgba(148, 163, 184, 0.18);
-    --text-main: #e2e8f0;
-    --text-muted: #94a3b8;
-    --accent: #38bdf8;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+    --page-bg: #0d0f14;
+    --panel-bg: rgba(18, 21, 30, 0.82);
+    --panel-border: rgba(255, 255, 255, 0.06);
+    --text-main: #d4d4dc;
+    --text-muted: #7c7f8e;
+    --text-bright: #eeeef2;
+    --accent: #d4a053;
+    --accent-glow: rgba(212, 160, 83, 0.18);
+    --success: #3ecf8e;
+    --success-glow: rgba(62, 207, 142, 0.12);
+    --warning: #e5a43a;
+    --danger: #e05252;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --sans: 'DM Sans', 'Segoe UI', sans-serif;
 }
 
+/* ── global ───────────────────────────────────── */
 body, .gradio-container {
+    font-family: var(--sans) !important;
+    letter-spacing: -0.01em;
     background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 32%),
-        radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 28%),
-        linear-gradient(180deg, #07101d 0%, #0b1220 100%);
+        radial-gradient(ellipse 120% 60% at 15% 0%, rgba(212, 160, 83, 0.07), transparent 55%),
+        radial-gradient(ellipse 90% 50% at 85% 5%, rgba(62, 207, 142, 0.05), transparent 50%),
+        linear-gradient(180deg, #101218 0%, var(--page-bg) 100%);
     color: var(--text-main);
 }
 
+/* kill Gradio's default orange */
+.gradio-container .primary {
+    background: linear-gradient(135deg, var(--accent), #b8862d) !important;
+    border: none !important;
+    color: #0d0f14 !important;
+    font-family: var(--sans) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em;
+    transition: box-shadow 0.25s ease, transform 0.18s ease !important;
+}
+.gradio-container .primary:hover {
+    box-shadow: 0 0 20px var(--accent-glow), 0 4px 14px rgba(0,0,0,0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.gradio-container label,
+.gradio-container .label-wrap span {
+    color: var(--text-muted) !important;
+    font-family: var(--sans) !important;
+    font-weight: 500 !important;
+    font-size: 0.82rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+
+.gradio-container input,
+.gradio-container textarea,
+.gradio-container select {
+    font-family: var(--sans) !important;
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid var(--panel-border) !important;
+    color: var(--text-main) !important;
+    border-radius: 10px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.gradio-container input:focus,
+.gradio-container textarea:focus {
+    border-color: rgba(212, 160, 83, 0.4) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow) !important;
+    outline: none !important;
+}
+
+/* ── layout shell ─────────────────────────────── */
 .app-shell {
     max-width: 1180px;
     margin: 0 auto;
 }
 
+/* ── hero banner ──────────────────────────────── */
 .hero {
-    padding: 24px 28px;
+    position: relative;
+    padding: 32px 36px 28px;
     border: 1px solid var(--panel-border);
-    border-radius: 20px;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.72));
-    box-shadow: 0 24px 48px rgba(2, 8, 23, 0.36);
+    border-radius: 22px;
+    background:
+        linear-gradient(135deg, rgba(18,21,30,0.96), rgba(28,32,44,0.80));
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.04) inset,
+        0 32px 64px rgba(0,0,0,0.35);
+    overflow: hidden;
+}
+.hero::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--success), var(--accent));
+    border-radius: 22px 22px 0 0;
+    opacity: 0.7;
 }
 
 .hero h1 {
-    margin: 0 0 8px;
-    color: #f8fafc;
-    font-size: 2.15rem;
+    margin: 0 0 6px;
+    color: var(--text-bright);
+    font-family: var(--sans);
+    font-size: 2.1rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
 }
 
 .hero p {
     margin: 0;
     color: var(--text-muted);
+    font-size: 0.95rem;
     line-height: 1.6;
 }
 
+.hero p code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+    color: var(--accent);
+}
+
+/* ── panels (left sidebar + main form + results) */
 .panel {
     border: 1px solid var(--panel-border);
     border-radius: 18px;
     background: var(--panel-bg);
-    box-shadow: 0 18px 42px rgba(2, 8, 23, 0.24);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 20px 50px rgba(0,0,0,0.22);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .section-title {
     margin: 0 0 10px;
-    color: #f8fafc;
+    color: var(--text-bright);
     font-size: 1.05rem;
+}
+
+/* ── status pill ──────────────────────────────── */
+@keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .status-pill {
     margin: 0;
-    padding: 10px 14px;
+    padding: 10px 16px;
     border-radius: 999px;
     font-weight: 600;
+    font-family: var(--sans);
+    font-size: 0.88rem;
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.status-pill .pulse-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
 }
 
 .status-pill.online {
-    color: #d1fae5;
-    background: rgba(16, 185, 129, 0.14);
-    border: 1px solid rgba(16, 185, 129, 0.28);
+    color: #a7f3d0;
+    background: rgba(62, 207, 142, 0.10);
+    border: 1px solid rgba(62, 207, 142, 0.22);
+}
+.status-pill.online .pulse-dot {
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+    animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .status-pill.offline {
-    color: #fee2e2;
-    background: rgba(239, 68, 68, 0.14);
-    border: 1px solid rgba(239, 68, 68, 0.24);
+    color: #fca5a5;
+    background: rgba(224, 82, 82, 0.10);
+    border: 1px solid rgba(224, 82, 82, 0.20);
+}
+.status-pill.offline .pulse-dot {
+    background: var(--danger);
+    box-shadow: 0 0 6px var(--danger);
 }
 
+/* ── notice blocks ────────────────────────────── */
 .notice {
     margin: 0;
-    padding: 14px 16px;
+    padding: 14px 18px;
     border-radius: 14px;
     line-height: 1.55;
+    font-size: 0.92rem;
+    position: relative;
+    overflow: hidden;
+}
+.notice::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 14px 0 0 14px;
 }
 
 .notice.error {
-    color: #fee2e2;
-    background: rgba(127, 29, 29, 0.5);
-    border: 1px solid rgba(239, 68, 68, 0.28);
+    color: #fca5a5;
+    background: rgba(127, 29, 29, 0.35);
+    border: 1px solid rgba(224, 82, 82, 0.18);
 }
+.notice.error::before { background: var(--danger); }
 
 .notice.info {
-    color: #dbeafe;
-    background: rgba(30, 64, 175, 0.32);
-    border: 1px solid rgba(96, 165, 250, 0.2);
+    color: #bfdbfe;
+    background: rgba(30, 64, 175, 0.22);
+    border: 1px solid rgba(96, 165, 250, 0.14);
 }
+.notice.info::before { background: #60a5fa; }
 
 .notice.success {
-    color: #d1fae5;
-    background: rgba(6, 95, 70, 0.42);
-    border: 1px solid rgba(16, 185, 129, 0.28);
+    color: #a7f3d0;
+    background: rgba(6, 95, 70, 0.30);
+    border: 1px solid rgba(62, 207, 142, 0.20);
 }
+.notice.success::before { background: var(--success); }
 
 .notice.warning {
-    color: #fef3c7;
-    background: rgba(120, 53, 15, 0.42);
-    border: 1px solid rgba(245, 158, 11, 0.24);
+    color: #fde68a;
+    background: rgba(120, 53, 15, 0.30);
+    border: 1px solid rgba(229, 164, 58, 0.18);
+}
+.notice.warning::before { background: var(--warning); }
+
+/* ── result verdict card ──────────────────────── */
+@keyframes card-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .result-card {
-    padding: 18px 20px;
+    padding: 22px 24px;
     border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(18, 21, 30, 0.90);
+    animation: card-enter 0.35s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+.result-card::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
 }
 
 .result-card.success {
-    border-left: 4px solid var(--success);
+    border-color: rgba(62, 207, 142, 0.18);
+}
+.result-card.success::after {
+    background: linear-gradient(180deg, var(--success), rgba(62,207,142,0.3));
 }
 
 .result-card.neutral {
-    border-left: 4px solid var(--text-muted);
+    border-color: rgba(124,127,142,0.15);
+}
+.result-card.neutral::after {
+    background: linear-gradient(180deg, var(--text-muted), rgba(124,127,142,0.3));
 }
 
 .result-card h2 {
     margin: 0 0 6px;
-    color: #f8fafc;
+    color: var(--text-bright);
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
 }
 
 .result-card p {
     margin: 0;
     color: var(--text-muted);
+    font-size: 0.92rem;
 }
 
+/* ── draft cards grid ─────────────────────────── */
 .draft-grid {
     display: grid;
     gap: 14px;
 }
 
+@keyframes draft-slide {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
 .draft-card {
-    padding: 16px 18px;
+    padding: 18px 20px;
     border-radius: 16px;
-    border: 1px solid rgba(56, 189, 248, 0.14);
-    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(212, 160, 83, 0.10);
+    background:
+        linear-gradient(135deg, rgba(18,21,30,0.92), rgba(28,32,44,0.70));
+    animation: draft-slide 0.3s ease-out backwards;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.draft-card:nth-child(1) { animation-delay: 0.05s; }
+.draft-card:nth-child(2) { animation-delay: 0.12s; }
+.draft-card:nth-child(3) { animation-delay: 0.19s; }
+.draft-card:nth-child(4) { animation-delay: 0.26s; }
+.draft-card:nth-child(5) { animation-delay: 0.33s; }
+
+.draft-card:hover {
+    border-color: rgba(212, 160, 83, 0.25);
+    box-shadow: 0 8px 28px rgba(212, 160, 83, 0.06);
 }
 
 .draft-card h3 {
     margin: 0 0 4px;
     color: var(--accent);
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
 }
 
 .draft-card .meta {
     margin: 0 0 10px;
     color: var(--text-muted);
-    font-size: 0.95rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
 }
 
 .draft-card pre {
@@ -186,13 +361,34 @@ body, .gradio-container {
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--text-main);
-    font-family: inherit;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    line-height: 1.55;
 }
 
+/* ── buttons ──────────────────────────────────── */
 #submit-ad button, #apply-demo-case button {
-    min-height: 46px;
+    min-height: 48px;
     font-weight: 700;
+    font-family: var(--sans) !important;
+    border-radius: 12px !important;
+    letter-spacing: 0.01em;
 }
+
+/* ── JSON viewer ──────────────────────────────── */
+.gradio-container .json-holder {
+    font-family: var(--mono) !important;
+    font-size: 0.82rem !important;
+}
+
+/* ── scrollbar ────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 """
 
 
@@ -259,8 +455,12 @@ def normalize_backend_url(raw_url: str | None) -> str:
 def render_backend_status(is_online: bool, detail: str | None = None) -> str:
     text = "Backend доступен" if is_online else "Backend недоступен"
     css_class = "online" if is_online else "offline"
-    suffix = f" <span>{escape(detail)}</span>" if detail else ""
-    return f'<p class="status-pill {css_class}"><span>{"●" if is_online else "○"}</span><span>{text}</span>{suffix}</p>'
+    suffix = f' <span style="opacity:0.7">&middot; {escape(detail)}</span>' if detail else ""
+    return (
+        f'<p class="status-pill {css_class}">'
+        f'<span class="pulse-dot"></span>'
+        f'<span>{text}</span>{suffix}</p>'
+    )
 
 
 def check_backend(backend_url: str, timeout: float = HEALTH_TIMEOUT) -> tuple[bool, str]:
@@ -379,11 +579,12 @@ def render_verdict(result: dict[str, Any]) -> str:
     should_split = bool(result.get("shouldSplit"))
     verdict_text = "Обнаружено несколько самостоятельных услуг." if should_split else "Объявление не нужно split-ить."
     css_class = "success" if should_split else "neutral"
+    icon = "⚡" if should_split else "—"
     return (
         f'<div class="result-card {css_class}">'
-        f"<h2>shouldSplit = {str(should_split).lower()}</h2>"
-        f"<p>{escape(verdict_text)}</p>"
-        "</div>"
+        f'<h2>{icon}&ensp;shouldSplit = {str(should_split).lower()}</h2>'
+        f'<p>{escape(verdict_text)}</p>'
+        '</div>'
     )
 
 
@@ -393,12 +594,12 @@ def render_drafts(result: dict[str, Any]) -> str:
         return '<div class="notice info">Черновики не созданы.</div>'
 
     cards = []
-    for draft in drafts:
+    for idx, draft in enumerate(drafts, 1):
         cards.append(
             "<article class=\"draft-card\">"
-            f"<h3>{escape(str(draft.get('mcTitle', 'Unknown')))}</h3>"
-            f"<p class=\"meta\">mcId: {escape(str(draft.get('mcId', '')))}</p>"
-            f"<pre>{escape(str(draft.get('text', '')))}</pre>"
+            f'<h3>#{idx}&ensp;{escape(str(draft.get("mcTitle", "Unknown")))}</h3>'
+            f'<p class="meta">mcId: {escape(str(draft.get("mcId", "")))}</p>'
+            f'<pre>{escape(str(draft.get("text", "")))}</pre>'
             "</article>"
         )
     return f'<div class="draft-grid">{"".join(cards)}</div>'
@@ -595,7 +796,7 @@ def build_app() -> gr.Blocks:
             """
             <div class="app-shell hero">
               <h1>Avito Services Splitter</h1>
-              <p>Анализ объявления и выделение самостоятельных услуг через существующий backend `POST /split`.</p>
+              <p>Анализ объявления и выделение самостоятельных услуг через backend <code>POST /split</code>.</p>
             </div>
             """
         )
