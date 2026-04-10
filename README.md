@@ -1,70 +1,53 @@
 # Avito Services Splitter
 
-Актуальные результаты проверок:
+Локальный MVP для split одного объявления на несколько самостоятельных услуг. В проекте backend на FastAPI сохранен без изменений, а demo frontend переведен на Gradio и работает как thin client поверх `POST /split`.
 
-- `pytest` -> `41 passed`
-- прогон [rnc_test.csv](C:/Users/pvppv/Desktop/roo/avito/rnc_test.csv) -> `159` запросов обработано, `48` ответов со `shouldSplit=true`, `111` со `shouldSplit=false`
+## Что В Репозитории
 
-Локальный MVP для кейса split одного объявления на несколько самостоятельных услуг. Репозиторий содержит backend на FastAPI, demo frontend на Streamlit, локальные launcher-скрипты, набор regression/evaluation датасетов и browser smoke-test на Playwright.
+- backend API на FastAPI с `POST /split` и `GET /health`
+- детерминированный split-pipeline без внешних API
+- demo frontend на Gradio
+- launcher-скрипты для локального и публичного demo
+- regression, API, smoke и browser e2e тесты на `pytest` + Playwright
+- локальные данные и demo cases
 
-## Что Уже Готово
+## Структура
 
-На текущий момент в проекте реализовано:
-
-- backend pipeline для детерминированного split-анализа без внешних API
-- FastAPI API с `POST /split` и `GET /health`
-- Streamlit demo UI для ручной проверки сценариев
-- launcher-скрипты для запуска backend + frontend одной командой
-- unit, integration и API tests на `pytest`
-- browser smoke e2e test на Playwright + локальном Chrome
-- regression coverage по локальным case-файлам
-- audit и regression-прогон экспертного датасета `rnc_dataset_markup.json/.csv`
-
-## Структура Репозитория
-
-- [src/avito_splitter](src/avito_splitter) - доменная логика, API, evaluation и audit
-- [demo](demo) - Streamlit demo UI и demo-кейсы
-- [data](data) - runtime-каталог и локальные regression датасеты
-- [tests](tests) - unit, integration, API, Streamlit smoke и Playwright smoke tests
-- [run_project.py](run_project.py), [run_project.bat](run_project.bat) - локальный запуск проекта
-- [rnc_dataset_markup.json](rnc_dataset_markup.json), [rnc_dataset_markup.csv](rnc_dataset_markup.csv) - экспертный датасет
+- [src/avito_splitter](src/avito_splitter) - API и доменная логика
+- [demo/gradio_app.py](demo/gradio_app.py) - Gradio demo UI
+- [demo/demo_cases.json](demo/demo_cases.json) - demo-кейсы
+- [data](data) - runtime-каталог и eval-данные
+- [tests](tests) - unit, API, smoke и Playwright e2e
+- [run_project.py](run_project.py) - основной launcher
+- [run_project.bat](run_project.bat) - thin wrapper над launcher
+- [start_demo.bat](start_demo.bat) - быстрый запуск demo на Windows
 
 ## Архитектура
 
-Поток обработки выглядит так:
+Поток обработки:
 
-1. Клиент отправляет объявление в формате `AdInput`.
-2. Backend нормализует текст и разбивает его на предложения и clauses.
-3. Extractor находит микрокатегории по `matchPhrases` и лемматизированным вариантам.
-4. Independence analyzer определяет для каждого evidence статус `blocked`, `confirmed` или `neutral`.
-5. Pipeline агрегирует решение по микрокатегориям, исключает исходный `mcId` и собирает `SplitResponse`.
-6. Draft generator строит детерминированные тексты черновиков.
-7. Streamlit UI показывает verdict, drafts и raw JSON.
+1. Gradio UI собирает payload объявления.
+2. Frontend отправляет HTTP-запрос в backend `POST /split`.
+3. Backend нормализует текст, находит микрокатегории и проверяет самостоятельность услуги.
+4. Pipeline возвращает `SplitResponse`.
+5. Gradio UI показывает verdict, drafts, raw JSON и сверку с эталоном demo-case.
 
-Ключевые точки в коде:
+Gradio не содержит split-логики. Он только загружает demo-cases и каталог микрокатегорий, вызывает backend и рендерит ответ.
 
-- API: [api.py](src/avito_splitter/api.py)
-- pipeline: [pipeline.py](src/avito_splitter/pipeline.py)
-- preprocessing: [preprocessing.py](src/avito_splitter/preprocessing.py)
-- category extraction: [category_extractor.py](src/avito_splitter/category_extractor.py)
-- independence analysis: [independence_analyzer.py](src/avito_splitter/independence_analyzer.py)
-- draft generation: [draft_generator.py](src/avito_splitter/draft_generator.py)
-- Streamlit UI: [streamlit_app.py](demo/streamlit_app.py)
+## Публичный Контракт API
 
-## Публичный Контракт
-
-Вход API:
+Вход:
 
 ```json
 {
-  "itemId": 5002,
+  "itemId": 1002,
   "mcId": 101,
   "mcTitle": "Ремонт квартир и домов под ключ",
-  "description": "Делаем ремонт квартир под ключ, а также отдельно выполняем сантехнические и электромонтажные работы."
+  "description": "Отдельно выполняем сантехнические и электромонтажные работы."
 }
 ```
 
-Выход API:
+Выход:
 
 ```json
 {
@@ -86,90 +69,20 @@
 
 Стабильные правила:
 
-- один `mcId` порождает не более одного `draft`
-- исходный `item.mcId` не попадает в `drafts`
-- `drafts` всегда список, даже если он пустой
-- порядок `drafts` соответствует первому подтвержденному появлению услуги в тексте
-- bare mention без подтверждающего контекста не создает `draft`
+- backend API не менялся при миграции frontend
+- исходный `mcId` не попадает в `drafts`
+- `drafts` всегда список
+- порядок `drafts` соответствует порядку подтвержденных услуг в тексте
 
-## Данные
-
-Основные файлы данных:
-
-- [data/microcategories.raw.json](data/microcategories.raw.json) - базовый локальный словарь микрокатегорий
-- [data/microcategories.enriched.json](data/microcategories.enriched.json) - runtime-словарь с `matchPhrases` и `draftLead`
-- [data/gold_examples.json](data/gold_examples.json) - базовые regression-кейсы
-- [data/synthetic_eval_examples.json](data/synthetic_eval_examples.json) - расширенный synthetic eval-набор
-- [demo/demo_cases.json](demo/demo_cases.json) - сценарии для demo UI
-- [rnc_dataset_markup.json](rnc_dataset_markup.json) и [rnc_dataset_markup.csv](rnc_dataset_markup.csv) - экспертный датасет
-
-Текущее состояние экспертного датасета:
-
-- `2480` строк в `json`
-- `2480` строк в `csv`
-- `json/csv` консистентны по содержимому
-- найдена одна структурная аномалия: у JSON-строки с индексом `318` `itemId` нечисловой
-
-## Быстрый Запуск
-
-Если окружение уже подготовлено, самый короткий запуск:
-
-```powershell
-python run_project.py
-```
-
-На Windows можно так:
-
-```bat
-run_project.bat
-```
-
-Launcher поднимет:
-
-- FastAPI backend
-- Streamlit demo UI
-
-После старта открой:
-
-- `http://127.0.0.1:8501` - demo UI
-- `http://127.0.0.1:8000/docs` - Swagger / OpenAPI
-
-Если порты заняты, launcher сам выберет следующие свободные и напечатает их в терминале.
-
-Для публичного demo через ngrok:
-
-```powershell
-python run_project.py public --ngrok-authtoken <your-ngrok-token>
-```
-
-Если токен уже сохранен в системе, задан через `NGROK_AUTHTOKEN` или лежит в локальном файле `.avito.local.env`, аргумент можно не передавать.
-
-## Подготовка Чистой Машины
+## Установка
 
 Минимально нужно:
 
-- `Git`
 - `Python 3.10+`
+- `Git`
 - локальный `Google Chrome` для Playwright smoke-test
 
-### Проверка Базовых Инструментов
-
-В PowerShell:
-
-```powershell
-git --version
-python --version
-```
-
-Для Chrome:
-
-```powershell
-Test-Path "C:\Program Files\Google\Chrome\Application\chrome.exe"
-```
-
-### Первичная Установка Зависимостей
-
-После `git clone`:
+Установка:
 
 ```powershell
 cd avito
@@ -177,24 +90,101 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-Этого достаточно для backend, Streamlit UI, `pytest` и Playwright-библиотеки.
+В `requirements.txt` demo frontend теперь зависит от `gradio`. `streamlit` больше не используется.
 
-## Варианты Запуска
+## Быстрый Запуск
 
-### Вариант 1. Один Командный Запуск
+Самый короткий локальный запуск:
 
-- Python: `python run_project.py`
-- Windows batch: `run_project.bat`
+```powershell
+python run_project.py
+```
 
-Что делает launcher:
+Или на Windows:
 
-- поднимает `uvicorn` на свободном локальном порту
-- поднимает `streamlit run demo/streamlit_app.py`
-- автоматически пробрасывает `AVITO_BACKEND_URL` во frontend
-- открывает browser, если не указан `--no-browser`
-- останавливает оба процесса по `Ctrl+C`
+```bat
+run_project.bat
+```
 
-### Вариант 2. Раздельный Ручной Запуск
+Для совсем быстрого локального старта demo:
+
+```bat
+start_demo.bat
+```
+
+Launcher поднимет:
+
+- FastAPI backend
+- локальный Gradio demo UI
+
+Если порты заняты, launcher автоматически выберет следующие свободные порты и напечатает итоговые ссылки.
+
+## Команды Launcher
+
+### Локальный demo
+
+```powershell
+python run_project.py
+python run_project.py demo
+```
+
+Что делает:
+
+- поднимает backend
+- поднимает локальный Gradio frontend
+- ждет `GET /health` у backend и `GET /` у frontend
+- печатает локальные ссылки
+
+### Публичный demo
+
+```powershell
+python run_project.py public
+```
+
+Что делает:
+
+- поднимает backend
+- поднимает Gradio с `share=True`
+- печатает:
+  - `Local backend docs: ...`
+  - `Local demo UI: ...`
+  - `Public demo UI: https://....gradio.live`
+
+Важно:
+
+- `public` больше не использует `ngrok`
+- публичная ссылка жива, пока жив процесс
+- для долгого публичного хостинга нужен отдельный deploy
+- если `share=True` не смог поднять ссылку из-за сети или сервиса Gradio, это operational issue, а не дефект backend
+
+### Только backend
+
+```powershell
+python run_project.py backend
+```
+
+### Только frontend
+
+```powershell
+python run_project.py frontend
+```
+
+По умолчанию frontend использует backend `http://127.0.0.1:8000`.
+
+Можно указать другой backend:
+
+```powershell
+python run_project.py frontend --backend-url http://127.0.0.1:8100
+```
+
+### Отчеты и тесты
+
+```powershell
+python run_project.py report
+python run_project.py test
+```
+
+## Раздельный Ручной Запуск
 
 Backend:
 
@@ -205,68 +195,35 @@ uvicorn src.avito_splitter.api:app --reload
 Frontend:
 
 ```powershell
-streamlit run demo/streamlit_app.py
+python demo/gradio_app.py
 ```
 
-Если backend запущен не на `8000`, укажи другой `URL backend` в sidebar Streamlit.
+Runtime env-переменные frontend:
 
-### Вариант 3. Только Backend
-
-```powershell
-python run_project.py backend
-```
-
-### Вариант 4. Только Frontend
-
-```powershell
-python run_project.py frontend
-```
-
-### Вариант 5. Публичный Demo Через ngrok
-
-```powershell
-python run_project.py public --ngrok-authtoken <your-ngrok-token>
-```
-
-Что делает launcher:
-
-- поднимает локальный backend
-- поднимает локальный Streamlit UI
-- поднимает ngrok tunnel для Streamlit demo UI
-- печатает публичную demo-ссылку в терминале
-- открывает публичную demo-ссылку в браузере, если не указан `--no-browser`
-
-Полезные варианты:
-
-```powershell
-python run_project.py public --ngrok-authtoken <your-ngrok-token>
-python run_project.py public --no-browser
-python run_project.py public --ngrok-path "C:\Users\<user>\AppData\Local\Programs\ngrok\ngrok.exe"
-```
-
-Локальный файл для токена:
-
-- шаблон: [.avito.local.env.example](.avito.local.env.example)
-- реальный локальный файл: `.avito.local.env`
-
-Файл `.avito.local.env` добавлен в `.gitignore`, поэтому токен можно хранить там без попадания в репозиторий:
-
-```text
-NGROK_AUTHTOKEN=<your-ngrok-token>
-```
+- `AVITO_BACKEND_URL` default `http://127.0.0.1:8000`
+- `AVITO_GRADIO_SHARE` default `false`
+- `AVITO_GRADIO_SERVER_NAME` default `127.0.0.1`
+- `AVITO_GRADIO_SERVER_PORT` default `7860`
 
 ## Demo UI
 
-Форма в demo UI поддерживает:
+Gradio demo поддерживает:
 
-- `itemId`
-- выбор исходной микрокатегории из dropdown
-- автоматическую синхронизацию `mcId`
-- ввод `description`
-- подстановку готовых demo-кейсов
-- сравнение ответа backend с ожидаемым эталоном demo-кейса
+- `Backend URL`
+- индикатор доступности backend
+- dropdown `Demo-кейс`
+- кнопку `Подставить кейс`
+- `Item ID`
+- dropdown `Микрокатегория`
+- read-only preview `mcId`
+- поле `Описание`
+- кнопку `Обработать объявление`
+- verdict по `shouldSplit`
+- рендер draft-карточек
+- `Raw JSON`
+- сверку с эталоном demo-case
 
-Основные demo-сценарии лежат в [demo/demo_cases.json](demo/demo_cases.json):
+Основные demo-кейсы лежат в [demo/demo_cases.json](demo/demo_cases.json):
 
 - комплексная услуга
 - отдельные услуги
@@ -275,9 +232,7 @@ NGROK_AUTHTOKEN=<your-ngrok-token>
 - нейтральное упоминание
 - смешанный контекст
 
-## Ручная Проверка
-
-Полезные примеры для быстрой ручной проверки:
+## Полезные Ручные Сценарии
 
 1. Без split:
 
@@ -285,10 +240,7 @@ NGROK_AUTHTOKEN=<your-ngrok-token>
 Делаем ремонт под ключ, включая электрику и сантехнику.
 ```
 
-Ожидание:
-
-- `shouldSplit = false`
-- `drafts = []`
+Ожидание: `shouldSplit = false`
 
 2. Split на 2 услуги:
 
@@ -296,10 +248,7 @@ NGROK_AUTHTOKEN=<your-ngrok-token>
 Отдельно выполняем сантехнические и электромонтажные работы.
 ```
 
-Ожидание:
-
-- `shouldSplit = true`
-- `draftMcIds = [102, 103]`
+Ожидание: `shouldSplit = true`, `draftMcIds = [102, 103]`
 
 3. Перечисление услуг:
 
@@ -307,109 +256,49 @@ NGROK_AUTHTOKEN=<your-ngrok-token>
 Выполняем электрику, сантехнику, натяжные потолки.
 ```
 
-Ожидание:
+Ожидание: `shouldSplit = true`, `draftMcIds = [103, 102, 104]`
 
-- `shouldSplit = true`
-- `draftMcIds = [103, 102, 104]`
+## Тесты
 
-4. Нейтральное упоминание:
-
-```text
-Делаем электрику и сантехнику в квартирах и домах.
-```
-
-Ожидание:
-
-- `shouldSplit = false`
-- `drafts = []`
-
-## Автоматические Проверки
-
-### Полный Локальный Прогон
+Полный прогон:
 
 ```powershell
 pytest
 ```
 
-На текущий момент полный тестовый набор:
+Ключевые наборы:
 
-- backend unit tests
-- pipeline regression
+- backend unit и regression tests
 - FastAPI API tests
-- Streamlit in-process smoke tests
-- Playwright e2e smoke test в реальном Chrome
-- audit/regression тесты по экспертному датасету
+- Gradio smoke tests
+- Playwright browser e2e на живом backend/frontend
+- launcher smoke tests
+- expert dataset audit regression
 
-### Отдельные Полезные Команды
-
-Все локальные кейсы:
-
-```powershell
-python run_project.py report
-```
-
-Synthetic evaluation:
+Отдельно:
 
 ```powershell
-python -c "from pathlib import Path; from src.avito_splitter.evaluation import evaluate_file; print(evaluate_file(Path('data/synthetic_eval_examples.json')))"
-```
-
-Expert dataset audit:
-
-```powershell
-python -m src.avito_splitter.expert_dataset_audit
-```
-
-Playwright browser smoke:
-
-```powershell
+pytest tests/test_gradio_smoke.py
 pytest tests/test_playwright_e2e.py
+pytest tests/test_run_project_smoke.py
 ```
 
-## Покрытие Проверок
+## Проверка Для Экспертов
 
-Ключевые test files:
-
-- [test_preprocessing.py](tests/test_preprocessing.py)
-- [test_category_extractor.py](tests/test_category_extractor.py)
-- [test_independence_analyzer.py](tests/test_independence_analyzer.py)
-- [test_draft_generator.py](tests/test_draft_generator.py)
-- [test_pipeline.py](tests/test_pipeline.py)
-- [test_api.py](tests/test_api.py)
-- [test_all_case_files.py](tests/test_all_case_files.py)
-- [test_evaluation.py](tests/test_evaluation.py)
-- [test_expert_dataset_audit.py](tests/test_expert_dataset_audit.py)
-- [test_streamlit_smoke.py](tests/test_streamlit_smoke.py)
-- [test_playwright_e2e.py](tests/test_playwright_e2e.py)
-
-Что закрыто автоматикой:
-
-- blocking-context против split
-- confirmed / neutral / mixed scenarios
-- исключение исходной категории
-- порядок `drafts`
-- дедупликация категорий
-- API contract
-- Streamlit form flow
-- реальный browser smoke на живом backend/frontend
-- экспертный dataset regression
-
-## Как Проверять Проект Экспертам
-
-Самый короткий маршрут проверки:
+Короткий маршрут:
 
 1. Выполнить `python -m pip install -r requirements.txt`
 2. Выполнить `pytest`
 3. Выполнить `python run_project.py`
-4. Открыть demo UI в браузере
-5. Подставить demo-кейсы и проверить verdict
-6. При необходимости открыть `/docs` и проверить контракт `POST /split`
-7. Выполнить `python -m src.avito_splitter.expert_dataset_audit`
+4. Открыть demo UI
+5. Подставить demo-case `Отдельные услуги`
+6. Нажать `Обработать объявление`
+7. Проверить verdict, drafts и сверку с эталоном
+8. При необходимости открыть `/docs`
 
 ## Операционные Замечания
 
-- проект не использует внешние API для split-логики
-- backend полностью локальный и синхронный
-- Streamlit является thin client и не содержит доменной логики split
-- если launcher сообщает о занятом порте, это нормальное поведение: он автоматически выберет свободный
-- для Playwright e2e нужен локально установленный Chrome
+- backend остается отдельным FastAPI сервисом
+- frontend остается thin client поверх HTTP backend
+- `share=True` подходит для demo/hackathon, но не для постоянного продакшен-хостинга
+- два одновременно запущенных процесса `python run_project.py public` должны получить разные `gradio.live` ссылки, если обе share-сессии успешно поднялись

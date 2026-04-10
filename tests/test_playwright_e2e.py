@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -50,47 +49,24 @@ def live_demo_urls():
 
     module = _load_run_project_module()
     backend_port = module._find_available_port("127.0.0.1", 8010)
-    frontend_port = module._find_available_port("127.0.0.1", 8510)
+    frontend_port = module._find_available_port("127.0.0.1", 7870)
     backend_url = f"http://127.0.0.1:{backend_port}"
     frontend_url = f"http://127.0.0.1:{frontend_port}"
 
-    backend = subprocess.Popen(
-        [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "src.avito_splitter.api:app",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            str(backend_port),
-        ],
-        cwd=ROOT,
-    )
-
+    backend = subprocess.Popen(module._build_backend_command(backend_port), cwd=ROOT)
     frontend = None
     try:
         module._wait_for_url(f"{backend_url}/health", "backend")
-        env = os.environ.copy()
-        env["AVITO_BACKEND_URL"] = backend_url
         frontend = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "streamlit",
-                "run",
-                "demo/streamlit_app.py",
-                "--server.address",
-                "127.0.0.1",
-                "--server.port",
-                str(frontend_port),
-                "--server.headless",
-                "true",
-            ],
+            module._build_frontend_command(),
             cwd=ROOT,
-            env=env,
+            env=module._build_frontend_env(
+                backend_url=backend_url,
+                frontend_port=frontend_port,
+                share=False,
+            ),
         )
-        module._wait_for_url(f"{frontend_url}/_stcore/health", "streamlit")
+        module._wait_for_url(f"{frontend_url}/", "gradio frontend")
         yield frontend_url, chrome_path
     finally:
         module._terminate(frontend)
@@ -103,33 +79,41 @@ def test_playwright_smoke_for_demo_ui(live_demo_urls) -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(executable_path=str(chrome_path), headless=True)
         page = browser.new_page()
-        page.goto(frontend_url, wait_until="networkidle")
+        page.goto(frontend_url, wait_until="domcontentloaded")
+        expect(page.get_by_text("Avito Services Splitter")).to_be_visible()
 
-        _select_streamlit_option(page, "Сценарий", "Отдельные услуги")
-        page.get_by_role("button", name="Подставить кейс").click()
+        _select_gradio_dropdown(page, "demo-case-dropdown", "Отдельные услуги")
+        page.locator("#apply-demo-case").click()
 
-        description = page.get_by_label("Описание")
+        description = page.locator("#description-input textarea")
         expect(description).to_have_value("Отдельно выполняем сантехнические и электромонтажные работы.")
-        expect_category = page.get_by_label("Микрокатегория")
-        expect(expect_category).to_have_attribute(
-            "aria-label",
-            "Selected Ремонт квартир и домов под ключ. Микрокатегория",
-        )
-        expect(page.get_by_text("ID выбранной микрокатегории: 101")).to_be_visible()
 
-        _select_streamlit_option(page, "Микрокатегория", "Сантехника")
-        expect(page.get_by_text("ID выбранной микрокатегории: 102")).to_be_visible()
+        category_input = _dropdown_input(page, "microcategory-dropdown")
+        expect(category_input).to_have_value("Ремонт квартир и домов под ключ")
+        expect(_textbox_value_locator(page, "mcid-preview")).to_have_value("101")
 
-        _select_streamlit_option(page, "Микрокатегория", "Ремонт квартир и домов под ключ")
-        page.get_by_role("button", name="Обработать объявление").click()
-        expect(page.get_by_text("shouldSplit = true")).to_be_visible()
-        expect(page.get_by_text("Сантехника", exact=True).first).to_be_visible()
-        expect(page.get_by_text("Электрика", exact=True).first).to_be_visible()
-        expect(page.get_by_text("100% совпадение")).to_be_visible()
+        _select_gradio_dropdown(page, "microcategory-dropdown", "Сантехника")
+        expect(_textbox_value_locator(page, "mcid-preview")).to_have_value("102")
+
+        _select_gradio_dropdown(page, "microcategory-dropdown", "Ремонт квартир и домов под ключ")
+        page.locator("#submit-ad").click()
+
+        expect(page.locator("#verdict-card")).to_contain_text("shouldSplit = true")
+        expect(page.locator("#drafts-list")).to_contain_text("Сантехника")
+        expect(page.locator("#drafts-list")).to_contain_text("Электрика")
+        expect(page.locator("#comparison-result")).to_contain_text("100% совпадение")
 
         browser.close()
 
 
-def _select_streamlit_option(page, label: str, option_text: str) -> None:
-    page.get_by_label(label).click()
+def _dropdown_input(page, elem_id: str):
+    return page.locator(f"#{elem_id} input").first
+
+
+def _textbox_value_locator(page, elem_id: str):
+    return page.locator(f"#{elem_id} textarea, #{elem_id} input").first
+
+
+def _select_gradio_dropdown(page, elem_id: str, option_text: str) -> None:
+    _dropdown_input(page, elem_id).click()
     page.get_by_role("option", name=option_text, exact=True).click()

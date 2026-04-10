@@ -1,26 +1,23 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
+import re
 import socket
 import subprocess
 import sys
-import tempfile
 import time
 import urllib.request
 import webbrowser
 from pathlib import Path
-from shutil import which
 
 from src.avito_splitter.case_report import build_case_report, format_case_report
 
 ROOT = Path(__file__).resolve().parent
-LOCAL_ENV_PATH = ROOT / ".avito.local.env"
-DEFAULT_NGROK_PATHS = (
-    Path.home() / "AppData/Local/Programs/ngrok/ngrok.exe",
-    Path(os.environ.get("ProgramFiles", "")) / "ngrok/ngrok.exe",
-)
+DEFAULT_BACKEND_HOST = "127.0.0.1"
+DEFAULT_FRONTEND_HOST = "127.0.0.1"
+DEFAULT_BACKEND_PORT = 8000
+DEFAULT_FRONTEND_PORT = 7860
 
 
 def main() -> int:
@@ -50,22 +47,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    demo_parser = subparsers.add_parser("demo", help="Run backend and Streamlit demo together.")
-    demo_parser.add_argument("--backend-port", type=int, default=8000)
-    demo_parser.add_argument("--frontend-port", type=int, default=8501)
+    demo_parser = subparsers.add_parser("demo", help="Run backend and local Gradio demo together.")
+    demo_parser.add_argument("--backend-port", type=int, default=DEFAULT_BACKEND_PORT)
+    demo_parser.add_argument("--frontend-port", type=int, default=DEFAULT_FRONTEND_PORT)
     demo_parser.add_argument("--no-browser", action="store_true")
 
     backend_parser = subparsers.add_parser("backend", help="Run only FastAPI backend.")
-    backend_parser.add_argument("--port", type=int, default=8000)
+    backend_parser.add_argument("--port", type=int, default=DEFAULT_BACKEND_PORT)
 
-    frontend_parser = subparsers.add_parser("frontend", help="Run only Streamlit frontend.")
-    frontend_parser.add_argument("--port", type=int, default=8501)
+    frontend_parser = subparsers.add_parser("frontend", help="Run only local Gradio frontend.")
+    frontend_parser.add_argument("--port", type=int, default=DEFAULT_FRONTEND_PORT)
+    frontend_parser.add_argument("--backend-url", type=str, default=f"http://{DEFAULT_BACKEND_HOST}:{DEFAULT_BACKEND_PORT}")
 
-    public_parser = subparsers.add_parser("public", help="Run demo and expose it through ngrok.")
-    public_parser.add_argument("--backend-port", type=int, default=8000)
-    public_parser.add_argument("--frontend-port", type=int, default=8501)
-    public_parser.add_argument("--ngrok-path", type=str, default=None)
-    public_parser.add_argument("--ngrok-authtoken", type=str, default=None)
+    public_parser = subparsers.add_parser("public", help="Run backend and Gradio demo with share=True.")
+    public_parser.add_argument("--backend-port", type=int, default=DEFAULT_BACKEND_PORT)
+    public_parser.add_argument("--frontend-port", type=int, default=DEFAULT_FRONTEND_PORT)
     public_parser.add_argument("--no-browser", action="store_true")
 
     subparsers.add_parser("report", help="Print report for all case files.")
@@ -90,9 +86,10 @@ def _normalize_cli_args(argv: list[str]) -> list[str]:
 
 
 def run_demo(args: argparse.Namespace) -> int:
-    backend_port = _find_available_port("127.0.0.1", args.backend_port)
-    frontend_port = _find_available_port("127.0.0.1", args.frontend_port)
-    backend_url = f"http://127.0.0.1:{backend_port}"
+    backend_port = _find_available_port(DEFAULT_BACKEND_HOST, args.backend_port)
+    frontend_port = _find_available_port(DEFAULT_FRONTEND_HOST, args.frontend_port)
+    backend_url = f"http://{DEFAULT_BACKEND_HOST}:{backend_port}"
+    frontend_url = f"http://{DEFAULT_FRONTEND_HOST}:{frontend_port}"
 
     if backend_port != args.backend_port:
         print(f"Port {args.backend_port} is busy, using backend port {backend_port}.")
@@ -102,23 +99,22 @@ def run_demo(args: argparse.Namespace) -> int:
     backend = None
     frontend = None
     try:
-        backend, frontend = _start_demo_services(backend_port, frontend_port, backend_url=backend_url)
+        backend, frontend = _start_demo_services(
+            backend_port=backend_port,
+            frontend_port=frontend_port,
+            backend_url=backend_url,
+            share=False,
+        )
 
-        frontend_url = f"http://127.0.0.1:{frontend_port}"
-        docs_url = f"{backend_url}/docs"
-        print(f"Backend docs: {docs_url}")
+        print(f"Backend docs: {backend_url}/docs")
         print(f"Demo UI: {frontend_url}")
         print("Press Ctrl+C to stop both services.")
 
         if not args.no_browser:
             webbrowser.open(frontend_url)
 
-        while True:
-            if backend.poll() is not None:
-                raise RuntimeError("Backend process exited unexpectedly.")
-            if frontend.poll() is not None:
-                raise RuntimeError("Streamlit process exited unexpectedly.")
-            time.sleep(1)
+        _wait_forever(backend=backend, frontend=frontend)
+        return 0
     except KeyboardInterrupt:
         return 0
     finally:
@@ -127,61 +123,43 @@ def run_demo(args: argparse.Namespace) -> int:
 
 
 def run_public_demo(args: argparse.Namespace) -> int:
-    backend_port = _find_available_port("127.0.0.1", args.backend_port)
-    frontend_port = _find_available_port("127.0.0.1", args.frontend_port)
-    backend_url = f"http://127.0.0.1:{backend_port}"
-    ngrok_path = _find_ngrok_path(args.ngrok_path)
-    ngrok_authtoken = _resolve_ngrok_authtoken(args.ngrok_authtoken)
+    backend_port = _find_available_port(DEFAULT_BACKEND_HOST, args.backend_port)
+    frontend_port = _find_available_port(DEFAULT_FRONTEND_HOST, args.frontend_port)
+    backend_url = f"http://{DEFAULT_BACKEND_HOST}:{backend_port}"
+    frontend_url = f"http://{DEFAULT_FRONTEND_HOST}:{frontend_port}"
 
     if backend_port != args.backend_port:
         print(f"Port {args.backend_port} is busy, using backend port {backend_port}.")
     if frontend_port != args.frontend_port:
         print(f"Port {args.frontend_port} is busy, using frontend port {frontend_port}.")
 
-    temp_dir: tempfile.TemporaryDirectory[str] | None = None
-    ngrok_config: Path | None = None
     backend = None
     frontend = None
-    ngrok_frontend = None
     try:
-        if ngrok_authtoken:
-            temp_dir = tempfile.TemporaryDirectory(prefix="avito-ngrok-")
-            ngrok_config = _create_ngrok_config(ngrok_path, ngrok_authtoken, Path(temp_dir.name))
-
-        backend, frontend = _start_demo_services(backend_port, frontend_port, backend_url=backend_url)
-
-        ngrok_frontend = _start_ngrok_tunnel(
-            ngrok_path=ngrok_path,
-            local_port=frontend_port,
-            label="frontend",
-            config_path=ngrok_config,
+        backend, frontend = _start_demo_services(
+            backend_port=backend_port,
+            frontend_port=frontend_port,
+            backend_url=backend_url,
+            share=True,
+            capture_frontend_output=True,
         )
-        public_frontend_url = _wait_for_ngrok_public_url(ngrok_frontend, "frontend tunnel")
+        public_frontend_url = _wait_for_gradio_public_url(frontend, "gradio public URL")
 
         print(f"Local backend docs: {backend_url}/docs")
-        print(f"Local demo UI: http://127.0.0.1:{frontend_port}")
+        print(f"Local demo UI: {frontend_url}")
         print(f"Public demo UI: {public_frontend_url}")
-        print("Share the public demo URL with experts. Press Ctrl+C to stop everything.")
+        print("Share the public demo URL while this process is running. Press Ctrl+C to stop everything.")
 
         if not args.no_browser:
             webbrowser.open(public_frontend_url)
 
-        while True:
-            if backend.poll() is not None:
-                raise RuntimeError("Backend process exited unexpectedly.")
-            if frontend.poll() is not None:
-                raise RuntimeError("Streamlit process exited unexpectedly.")
-            if ngrok_frontend.poll() is not None:
-                raise RuntimeError("ngrok frontend tunnel exited unexpectedly.")
-            time.sleep(1)
+        _wait_forever(backend=backend, frontend=frontend)
+        return 0
     except KeyboardInterrupt:
         return 0
     finally:
-        _terminate(ngrok_frontend)
         _terminate(frontend)
         _terminate(backend)
-        if temp_dir is not None:
-            temp_dir.cleanup()
 
 
 def run_backend(args: argparse.Namespace) -> int:
@@ -191,7 +169,7 @@ def run_backend(args: argparse.Namespace) -> int:
         "uvicorn",
         "src.avito_splitter.api:app",
         "--host",
-        "127.0.0.1",
+        DEFAULT_BACKEND_HOST,
         "--port",
         str(args.port),
     ]
@@ -199,20 +177,12 @@ def run_backend(args: argparse.Namespace) -> int:
 
 
 def run_frontend(args: argparse.Namespace) -> int:
-    env = os.environ.copy()
-    env.setdefault("AVITO_BACKEND_URL", "http://127.0.0.1:8000")
-    command = [
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        "demo/streamlit_app.py",
-        "--server.address",
-        "127.0.0.1",
-        "--server.port",
-        str(args.port),
-    ]
-    return subprocess.call(command, cwd=ROOT, env=env)
+    env = _build_frontend_env(
+        backend_url=args.backend_url,
+        frontend_port=args.port,
+        share=False,
+    )
+    return subprocess.call(_build_frontend_command(), cwd=ROOT, env=env)
 
 
 def run_report() -> int:
@@ -228,38 +198,20 @@ def _start_demo_services(
     backend_port: int,
     frontend_port: int,
     backend_url: str,
-) -> tuple[subprocess.Popen, subprocess.Popen]:
-    backend_cmd = [
-        sys.executable,
-        "-m",
-        "uvicorn",
-        "src.avito_splitter.api:app",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        str(backend_port),
-    ]
-    frontend_cmd = [
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        "demo/streamlit_app.py",
-        "--server.address",
-        "127.0.0.1",
-        "--server.port",
-        str(frontend_port),
-        "--server.headless",
-        "true",
-    ]
-    backend = subprocess.Popen(backend_cmd, cwd=ROOT)
+    share: bool,
+    capture_frontend_output: bool = False,
+) -> tuple[subprocess.Popen[str], subprocess.Popen[str]]:
+    backend = subprocess.Popen(_build_backend_command(backend_port), cwd=ROOT, text=True)
     try:
         _wait_for_url(f"{backend_url}/health", "backend")
-        frontend_env = os.environ.copy()
-        frontend_env["AVITO_BACKEND_URL"] = backend_url
-        frontend = subprocess.Popen(frontend_cmd, cwd=ROOT, env=frontend_env)
+        frontend = _start_frontend_process(
+            backend_url=backend_url,
+            frontend_port=frontend_port,
+            share=share,
+            capture_output=capture_frontend_output,
+        )
         try:
-            _wait_for_url(f"http://127.0.0.1:{frontend_port}/_stcore/health", "streamlit")
+            _wait_for_url(f"http://{DEFAULT_FRONTEND_HOST}:{frontend_port}/", "gradio frontend")
         except Exception:
             _terminate(frontend)
             raise
@@ -267,6 +219,64 @@ def _start_demo_services(
     except Exception:
         _terminate(backend)
         raise
+
+
+def _build_backend_command(port: int) -> list[str]:
+    return [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "src.avito_splitter.api:app",
+        "--host",
+        DEFAULT_BACKEND_HOST,
+        "--port",
+        str(port),
+    ]
+
+
+def _build_frontend_command() -> list[str]:
+    return [
+        sys.executable,
+        "-u",
+        "demo/gradio_app.py",
+    ]
+
+
+def _build_frontend_env(backend_url: str, frontend_port: int, share: bool) -> dict[str, str]:
+    env = os.environ.copy()
+    env["AVITO_BACKEND_URL"] = backend_url
+    env["AVITO_GRADIO_SHARE"] = "true" if share else "false"
+    env["AVITO_GRADIO_SERVER_NAME"] = DEFAULT_FRONTEND_HOST
+    env["AVITO_GRADIO_SERVER_PORT"] = str(frontend_port)
+    env["PYTHONUNBUFFERED"] = "1"
+    return env
+
+
+def _start_frontend_process(
+    backend_url: str,
+    frontend_port: int,
+    share: bool,
+    capture_output: bool,
+) -> subprocess.Popen[str]:
+    kwargs: dict[str, object] = {
+        "cwd": ROOT,
+        "env": _build_frontend_env(backend_url=backend_url, frontend_port=frontend_port, share=share),
+        "text": True,
+    }
+    if capture_output:
+        kwargs["stdout"] = subprocess.PIPE
+        kwargs["stderr"] = subprocess.STDOUT
+        kwargs["bufsize"] = 1
+    return subprocess.Popen(_build_frontend_command(), **kwargs)  # type: ignore[arg-type]
+
+
+def _wait_forever(backend: subprocess.Popen[str], frontend: subprocess.Popen[str]) -> None:
+    while True:
+        if backend.poll() is not None:
+            raise RuntimeError("Backend process exited unexpectedly.")
+        if frontend.poll() is not None:
+            raise RuntimeError("Gradio process exited unexpectedly.")
+        time.sleep(1)
 
 
 def _wait_for_url(url: str, label: str, timeout: float = 30.0) -> None:
@@ -281,34 +291,39 @@ def _wait_for_url(url: str, label: str, timeout: float = 30.0) -> None:
     raise RuntimeError(f"Timed out waiting for {label} at {url}")
 
 
-def _wait_for_ngrok_public_url(process: subprocess.Popen, label: str, timeout: float = 30.0) -> str:
-    deadline = time.time() + timeout
-    if process.stdout is None:
-        raise RuntimeError(f"Cannot read ngrok logs for {label}")
+def extract_gradio_public_url(text: str) -> str | None:
+    match = re.search(r"https://[a-zA-Z0-9.-]+\.gradio\.live(?:/\S*)?", text)
+    if match:
+        return match.group(0)
+    return None
 
+
+def _wait_for_gradio_public_url(
+    process: subprocess.Popen[str],
+    label: str,
+    timeout: float = 60.0,
+) -> str:
+    if process.stdout is None:
+        raise RuntimeError(f"Cannot read stdout for {label}")
+
+    deadline = time.time() + timeout
     while time.time() < deadline:
         if process.poll() is not None:
-            raise RuntimeError(f"ngrok exited before {label} became ready")
+            raise RuntimeError(f"Frontend exited before {label} became ready")
+
         line = process.stdout.readline()
         if not line:
             time.sleep(0.2)
             continue
-        try:
-            payload = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        public_url = str(payload.get("url", ""))
-        if public_url.startswith("https://"):
+
+        public_url = extract_gradio_public_url(line)
+        if public_url:
             return public_url
-        msg = str(payload.get("msg", ""))
-        if msg == "started tunnel":
-            nested_url = str(payload.get("obj", {}).get("url", ""))
-            if nested_url.startswith("https://"):
-                return nested_url
-        if payload.get("lvl") == "eror":
-            err = str(payload.get("err", "")).strip()
-            if err:
-                raise RuntimeError(f"{label} failed: {err}")
+
+        lowered = line.lower()
+        if "could not create share link" in lowered:
+            raise RuntimeError(line.strip())
+
     raise RuntimeError(f"Timed out waiting for {label}")
 
 
@@ -324,88 +339,7 @@ def _find_available_port(host: str, preferred_port: int, search_limit: int = 20)
     raise RuntimeError(f"Could not find available port starting from {preferred_port}")
 
 
-def _find_ngrok_path(custom_path: str | None = None) -> str:
-    if custom_path:
-        path = Path(custom_path)
-        if path.exists():
-            return str(path)
-        raise RuntimeError(f"ngrok executable not found at {custom_path}")
-
-    resolved = which("ngrok")
-    if resolved:
-        return resolved
-
-    for candidate in DEFAULT_NGROK_PATHS:
-        if candidate.exists():
-            return str(candidate)
-
-    raise RuntimeError(
-        "ngrok executable not found. Install ngrok or pass --ngrok-path / set it in PATH."
-    )
-
-
-def _resolve_ngrok_authtoken(explicit_token: str | None) -> str | None:
-    if explicit_token:
-        return explicit_token
-
-    env_token = os.environ.get("NGROK_AUTHTOKEN")
-    if env_token:
-        return env_token
-
-    local_env = _load_local_env_file(LOCAL_ENV_PATH)
-    return local_env.get("NGROK_AUTHTOKEN")
-
-
-def _load_local_env_file(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-
-    values: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, value = stripped.split("=", 1)
-        values[key.strip()] = value.strip().strip('"').strip("'")
-    return values
-
-
-def _create_ngrok_config(ngrok_path: str, authtoken: str, temp_dir: Path) -> Path:
-    config_path = temp_dir / "ngrok.yml"
-    command = [ngrok_path, "config", "add-authtoken", authtoken, "--config", str(config_path)]
-    subprocess.run(command, check=True, cwd=ROOT, capture_output=True, text=True)
-    return config_path
-
-
-def _start_ngrok_tunnel(
-    ngrok_path: str,
-    local_port: int,
-    label: str,
-    config_path: Path | None,
-) -> subprocess.Popen:
-    command = [
-        ngrok_path,
-        "http",
-        str(local_port),
-        "--name",
-        label,
-        "--log",
-        "stdout",
-        "--log-format",
-        "json",
-    ]
-    if config_path is not None:
-        command.extend(["--config", str(config_path)])
-    return subprocess.Popen(
-        command,
-        cwd=ROOT,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-
-
-def _terminate(process: subprocess.Popen | None) -> None:
+def _terminate(process: subprocess.Popen[str] | None) -> None:
     if process is None or process.poll() is not None:
         return
     process.terminate()
