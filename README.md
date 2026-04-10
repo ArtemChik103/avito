@@ -4,6 +4,7 @@
 
 ## Что В Репозитории
 
+- текущий публичный Gradio demo: https://2cb0fcbccca842137d.gradio.live
 - backend API на FastAPI с `POST /split` и `GET /health`
 - детерминированный split-pipeline без внешних API
 - demo frontend на Gradio
@@ -148,7 +149,7 @@ python run_project.py public
 - печатает:
   - `Local backend docs: ...`
   - `Local demo UI: ...`
-  - `Public demo UI: https://....gradio.live`
+  - `Public demo UI: https://2cb0fcbccca842137d.gradio.live`
 
 Важно:
 
