@@ -1,5 +1,10 @@
 # Avito Services Splitter
 
+Актуальные результаты проверок:
+
+- `pytest` -> `41 passed`
+- прогон [rnc_test.csv](C:/Users/pvppv/Desktop/roo/avito/rnc_test.csv) -> `159` запросов обработано, `48` ответов со `shouldSplit=true`, `111` со `shouldSplit=false`
+
 Локальный MVP для кейса split одного объявления на несколько самостоятельных услуг. Репозиторий содержит backend на FastAPI, demo frontend на Streamlit, локальные launcher-скрипты, набор regression/evaluation датасетов и browser smoke-test на Playwright.
 
 ## Что Уже Готово
