@@ -279,7 +279,7 @@ def _wait_forever(backend: subprocess.Popen[str], frontend: subprocess.Popen[str
         time.sleep(1)
 
 
-def _wait_for_url(url: str, label: str, timeout: float = 30.0) -> None:
+def _wait_for_url(url: str, label: str, timeout: float = 120.0) -> None:
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
