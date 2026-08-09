@@ -1,5 +1,7 @@
 # Avito Services Splitter
 
+**🚀 Live Application (Render):** [https://avito-splitter.onrender.com](https://avito-splitter.onrender.com)
+
 Локальный MVP для split одного объявления на несколько самостоятельных услуг. В проекте backend на FastAPI сохранен без изменений, а demo frontend переведен на Gradio и работает как thin client поверх `POST /split`.
 
 ## Что В Репозитории
