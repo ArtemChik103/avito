@@ -6,7 +6,7 @@
 
 ## Что В Репозитории
 
-- текущий публичный Gradio demo: https://2cb0fcbccca842137d.gradio.live
+- **🚀 Live Application (Render):** [https://avito-splitter.onrender.com](https://avito-splitter.onrender.com)
 - [rnc_test.csv](C:/Users/pvppv/Desktop/roo/avito/rnc_test.csv) - экспертный CSV с `159` test-запросами и заполненной колонкой `response`
 - backend API на FastAPI с `POST /split` и `GET /health`
 - детерминированный split-pipeline без внешних API
