@@ -930,8 +930,10 @@ def parse_bool_env(raw_value: str | None) -> bool:
 
 
 def launch_from_env() -> None:
-    server_name = os.getenv("AVITO_GRADIO_SERVER_NAME", DEFAULT_SERVER_NAME)
-    server_port = int(os.getenv("AVITO_GRADIO_SERVER_PORT", str(DEFAULT_SERVER_PORT)))
+    default_host = "0.0.0.0" if ("PORT" in os.environ or "RENDER" in os.environ) else DEFAULT_SERVER_NAME
+    default_port = int(os.getenv("PORT", str(DEFAULT_SERVER_PORT)))
+    server_name = os.getenv("AVITO_GRADIO_SERVER_NAME", default_host)
+    server_port = int(os.getenv("AVITO_GRADIO_SERVER_PORT", str(default_port)))
     share = parse_bool_env(os.getenv("AVITO_GRADIO_SHARE", "false"))
     build_app().launch(server_name=server_name, server_port=server_port, share=share)
 

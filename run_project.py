@@ -15,9 +15,9 @@ from src.avito_splitter.case_report import build_case_report, format_case_report
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_BACKEND_HOST = "127.0.0.1"
-DEFAULT_FRONTEND_HOST = "127.0.0.1"
+DEFAULT_FRONTEND_HOST = os.environ.get("HOST", "0.0.0.0" if ("PORT" in os.environ or "RENDER" in os.environ) else "127.0.0.1")
 DEFAULT_BACKEND_PORT = 8000
-DEFAULT_FRONTEND_PORT = 7860
+DEFAULT_FRONTEND_PORT = int(os.environ.get("PORT", "7860"))
 
 
 def main() -> int:
