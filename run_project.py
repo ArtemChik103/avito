@@ -211,7 +211,7 @@ def _start_demo_services(
             capture_output=capture_frontend_output,
         )
         try:
-            _wait_for_url(f"http://{DEFAULT_FRONTEND_HOST}:{frontend_port}/", "gradio frontend")
+            _wait_for_url(f"http://127.0.0.1:{frontend_port}/", "gradio frontend")
         except Exception:
             _terminate(frontend)
             raise
