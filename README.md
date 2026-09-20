@@ -1,24 +1,28 @@
 # Avito Services Splitter
 
-**🚀 Live Application (Render):** [https://avito-splitter.onrender.com](https://avito-splitter.onrender.com)
+[![Streamlit Ready](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](streamlit_app.py)
 
-Локальный MVP для split одного объявления на несколько самостоятельных услуг. В проекте backend на FastAPI сохранен без изменений, а demo frontend переведен на Gradio и работает как thin client поверх `POST /split`.
+**Веб-интерфейс (Render):** [https://avito-splitter.onrender.com](https://avito-splitter.onrender.com)  
+**Готов к деплою на Streamlit Cloud:** точка входа `streamlit_app.py`
 
-## Что В Репозитории
+Сервис анализа и разделения мультисервисных объявлений услуг на независимые черновики. Включает FastAPI бэкенд, автономный интерфейс Streamlit (`streamlit_app.py`) и Gradio демо (`demo/gradio_app.py`).
 
-- **🚀 Live Application (Render):** [https://avito-splitter.onrender.com](https://avito-splitter.onrender.com)
-- [rnc_test.csv](C:/Users/pvppv/Desktop/roo/avito/rnc_test.csv) - экспертный CSV с `159` test-запросами и заполненной колонкой `response`
-- backend API на FastAPI с `POST /split` и `GET /health`
-- детерминированный split-pipeline без внешних API
-- demo frontend на Gradio
-- launcher-скрипты для локального и публичного demo
-- regression, API, smoke и browser e2e тесты на `pytest` + Playwright
-- локальные данные и demo cases
+## Что в репозитории
+
+- [streamlit_app.py](streamlit_app.py) — автономное веб-приложение для хостинга на Streamlit Community Cloud
+- [rnc_test.csv](rnc_test.csv) — экспертный CSV со 159 тестовыми запросами и эталонными ответами
+- backend API на FastAPI с эндпоинтами `POST /split` и `GET /health`
+- детерминированный split-pipeline без внешних сетевых вызовов
+- demo frontend на Gradio и Streamlit
+- launcher-скрипты для локального запуска
+- регрессионные, API, smoke и browser e2e тесты на `pytest` и Playwright
+- локальные данные и тестовые сценарии (`demo/demo_cases.json`)
 
 ## Структура
 
-- [src/avito_splitter](src/avito_splitter) - API и доменная логика
-- [demo/gradio_app.py](demo/gradio_app.py) - Gradio demo UI
+- [streamlit_app.py](streamlit_app.py) — Streamlit Cloud приложение
+- [src/avito_splitter](src/avito_splitter) — API и доменная логика
+- [demo/gradio_app.py](demo/gradio_app.py) — Gradio demo UI
 - [demo/demo_cases.json](demo/demo_cases.json) - demo-кейсы
 - [data](data) - runtime-каталог и eval-данные
 - [tests](tests) - unit, API, smoke и Playwright e2e
@@ -94,11 +98,19 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-В `requirements.txt` demo frontend теперь зависит от `gradio`. `streamlit` больше не используется.
+В `requirements.txt` включены зависимости для бэкенда, Gradio и нативного интерфейса `streamlit`.
 
-## Быстрый Запуск
+## Быстрый запуск
 
-Самый короткий локальный запуск:
+### 1. Автономный Streamlit интерфейс (для локального запуска и Streamlit Cloud)
+
+```powershell
+streamlit run streamlit_app.py
+```
+
+Приложение запускается локально по адресу `http://localhost:8501`. Для деплоя на [Streamlit Community Cloud](https://share.streamlit.io) достаточно указать репозиторий `ArtemChik103/avito` и главный файл `streamlit_app.py`.
+
+### 2. Комплексный запуск (FastAPI backend + Gradio UI)
 
 ```powershell
 python run_project.py

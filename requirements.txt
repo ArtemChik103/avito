@@ -7,3 +7,5 @@ pytest
 httpx
 gradio
 playwright
+streamlit>=1.35.0
+
