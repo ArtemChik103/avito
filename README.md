@@ -1,9 +1,10 @@
 # Avito Services Splitter
 
-[![Streamlit Ready](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](streamlit_app.py)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://d6ycakzajuljcqlpcuxw3k.streamlit.app/)
+[![Keep-Alive](https://github.com/ArtemChik103/avito/actions/workflows/keep_alive.yml/badge.svg)](https://github.com/ArtemChik103/avito/actions/workflows/keep_alive.yml)
 
-**Веб-интерфейс (Render):** [https://avito-splitter.onrender.com](https://avito-splitter.onrender.com)  
-**Готов к деплою на Streamlit Cloud:** точка входа `streamlit_app.py`
+**Веб-интерфейс (Streamlit Cloud):** [https://d6ycakzajuljcqlpcuxw3k.streamlit.app/](https://d6ycakzajuljcqlpcuxw3k.streamlit.app/)
+**Автономная точка входа:** `streamlit_app.py`
 
 Сервис анализа и разделения мультисервисных объявлений услуг на независимые черновики. Включает FastAPI бэкенд, автономный интерфейс Streamlit (`streamlit_app.py`) и Gradio демо (`demo/gradio_app.py`).
 
