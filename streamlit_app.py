@@ -57,6 +57,7 @@ def main() -> None:
         )
 
         selected_case_item: dict[str, Any] | None = None
+        selected_case_index = 0
         if mode == "Готовые примеры" and demo_cases:
             case_labels = [c.get("label", f"Кейс {idx + 1}") for idx, c in enumerate(demo_cases)]
             selected_case_index = st.selectbox(
@@ -65,6 +66,12 @@ def main() -> None:
                 format_func=lambda i: case_labels[i],
             )
             selected_case_item = demo_cases[selected_case_index]["item"]
+
+        # Reset stored result if user changes scenario or mode
+        current_case_key = f"{mode}_{selected_case_index}"
+        if st.session_state.get("active_case_key") != current_case_key:
+            st.session_state["active_case_key"] = current_case_key
+            st.session_state["split_response"] = None
 
         st.divider()
         st.subheader("Справочник микрокатегорий")
@@ -125,48 +132,51 @@ def main() -> None:
     with col_right:
         st.subheader("Результат анализа")
 
-        if submit_btn or selected_case_item is not None:
+        if submit_btn:
             if not description.strip():
                 st.warning("Введите текст объявления для выполнения анализа.")
-                return
+                st.session_state["split_response"] = None
+            else:
+                try:
+                    item = AdInput(
+                        itemId=int(item_id),
+                        mcId=int(selected_category.mcId),
+                        mcTitle=str(selected_category.mcTitle),
+                        description=description.strip(),
+                    )
+                    response: SplitResponse = splitter.process(item)
+                    st.session_state["split_response"] = response
+                except Exception as e:
+                    st.error(f"Ошибка при обработке объявления: {e}")
+                    st.session_state["split_response"] = None
 
-            try:
-                item = AdInput(
-                    itemId=int(item_id),
-                    mcId=int(selected_category.mcId),
-                    mcTitle=str(selected_category.mcTitle),
-                    description=description.strip(),
+        response: SplitResponse | None = st.session_state.get("split_response")
+
+        if response is not None:
+            # Summary metrics
+            m1, m2 = st.columns(2)
+            with m1:
+                st.metric(
+                    label="Решение о разделении",
+                    value="Разделено" if response.shouldSplit else "Не требует разделения",
+                )
+            with m2:
+                st.metric(
+                    label="Сформировано черновиков",
+                    value=len(response.drafts),
                 )
 
-                response: SplitResponse = splitter.process(item)
+            if response.shouldSplit and response.drafts:
+                st.success("Объявление содержит несколько независимых услуг. Сформированы следующие черновики:")
+                for idx, draft in enumerate(response.drafts, start=1):
+                    with st.container(border=True):
+                        st.markdown(f"**Черновик {idx}: {draft.mcTitle}** `(mcId: {draft.mcId})`")
+                        st.write(draft.text)
+            else:
+                st.info("Объявление представляет собой монолитную услугу или входит в рамки текущей комплексной категории. Разделение не требуется.")
 
-                # Summary metrics
-                m1, m2 = st.columns(2)
-                with m1:
-                    st.metric(
-                        label="Решение о разделении",
-                        value="Разделено" if response.shouldSplit else "Не требует разделения",
-                    )
-                with m2:
-                    st.metric(
-                        label="Сформировано черновиков",
-                        value=len(response.drafts),
-                    )
-
-                if response.shouldSplit and response.drafts:
-                    st.success("Объявление содержит несколько независимых услуг. Сформированы следующие черновики:")
-                    for idx, draft in enumerate(response.drafts, start=1):
-                        with st.container(border=True):
-                            st.markdown(f"**Черновик {idx}: {draft.mcTitle}** `(mcId: {draft.mcId})`")
-                            st.write(draft.text)
-                else:
-                    st.info("Объявление представляет собой монолитную услугу или входит в рамки текущей комплексной категории. Разделение не требуется.")
-
-                with st.expander("Сырой JSON ответ (согласно схеме SplitResponse)", expanded=False):
-                    st.json(response.model_dump())
-
-            except Exception as e:
-                st.error(f"Ошибка при обработке объявления: {e}")
+            with st.expander("Сырой JSON ответ (согласно схеме SplitResponse)", expanded=False):
+                st.json(response.model_dump())
         else:
             st.info("Нажмите кнопку «Разделить объявление» для запуска анализа.")
 
